@@ -27,23 +27,31 @@ Field::~Field ()
 }
 void Field::showField () const
 {
-	for (int i=0; i<b; i++)
+	for (int i=0; i<(2*b+1); i++)
 	{
-		cout << "_";													// top of the field
+		cout << "-";													// top of the field
 	}
-	cout << "\n";
+	cout << endl;
 	for (int i=0; i<a; i++)
 	{
 		for (int j=0; j<b; j++)
 		{
-			cout << "|" << field [i][j];								// element within the field
+			if (field[i][j])
+			{
+				cout << "|" << field [i][j];							// non-zero element within the field
+			}
+			else
+			{
+				cout << "|" << " ";										// zero replaced with a blank symbol
+			}
 		}
-		cout << "|" << "\n";
+		cout << "|" << endl;
 	}
-	for (int i=0; i<b; i++)
+	for (int i=0; i<(2*b+1); i++)
 	{
-		cout << "_";													// bottom of the field
-	}	
+		cout << "-";													// bottom of the field
+	}
+	cout << endl;	
 }
 void Field::fill (ifstream &in)
 {
@@ -90,6 +98,6 @@ int main (void)
     }
     readParameters (in,&a,&b,&n);
     Field myField (a,b,n);
-    //myField.fill (in);
-    //myField.showField ();
+    myField.fill (in);
+    myField.showField ();
 }

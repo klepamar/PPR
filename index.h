@@ -9,5 +9,5 @@ public:
 	Field (int a, int b, int n);
 	~Field ();
 	void showField () const;
-	void fill (ifstream &in);
+	void fill (std::ifstream &in);
 };
