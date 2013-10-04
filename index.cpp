@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <cstdlib> //required by EXIT_FAILURE
+#include <cstdlib> 														//required by EXIT_FAILURE
 #include "index.h"
 
 using namespace std;
@@ -29,7 +29,7 @@ void Field::showField () const
 {
 	for (int i=0; i<b; i++)
 	{
-		cout << "_";													//top of the field
+		cout << "_";													// top of the field
 	}
 	cout << "\n";
 	for (int i=0; i<a; i++)
@@ -42,16 +42,39 @@ void Field::showField () const
 	}
 	for (int i=0; i<b; i++)
 	{
-		cout << "_";													//bottom of the field
+		cout << "_";													// bottom of the field
 	}	
+}
+void Field::fill (ifstream &in)
+{
+	char currentElement;
+	int asciiCode;
+	string s;
+	for (int i=0; i<a; i++)
+	{
+		for (int j=0; j<b; j++)
+		{
+			in >> currentElement;
+			asciiCode = (int)currentElement;
+			if (asciiCode == 45)										// empty element
+			{
+				field[i][j]=0;											// place 0 into object variable 'field' so that it is not undefined
+			}
+			else if (asciiCode >=48 && asciiCode <= 57)					// is a number
+			{
+				field[i][j]=asciiCode-48;								// first number stored as char has value of 48 (='0')
+			}
+		}
+		getline(in,s); 													// get rid of new line character
+	}
 }
 void readParameters (ifstream &in, int *xDimension, int *yDimension, int *noOfElements)
 {
 	string s;
 	in >> *xDimension >> *yDimension;
-	getline(in,s); 														//get rid of new line character
+	getline(in,s); 														// get rid of new line character
 	in >> *noOfElements;
-	getline(in,s);	 													//get rid of new line character
+	getline(in,s);	 													// get rid of new line character
 	cout << "Dimensions of the field: " << "x=" << *xDimension << ", y=" << *yDimension << endl;
 	cout << "Number of non-zero elements: " << *noOfElements << endl;
 }
@@ -67,4 +90,6 @@ int main (void)
     }
     readParameters (in,&a,&b,&n);
     Field myField (a,b,n);
+    //myField.fill (in);
+    //myField.showField ();
 }
