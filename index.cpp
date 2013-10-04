@@ -100,4 +100,5 @@ int main (void)
     Field myField (a,b,n);
     myField.fill (in);
     myField.showField ();
+    in.close ();
 }
