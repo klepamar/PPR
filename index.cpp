@@ -1,104 +1,104 @@
 #include <iostream>
 #include <fstream>
-#include <cstdlib> 														//required by EXIT_FAILURE
-#include "index.h"
+#include <cstdlib>
+
+#include "Field.h"
 
 using namespace std;
 
 const char *fileName = "vstup.txt";
 
-Field::Field (int a, int b, int n)
-{
-	this->a=a;
-	this->b=b;
-	this->n=n;
-	this->field = new int*[a];
-	for (int i=0; i<a; i++)
-	{
-		field[i] = new int[b];	
-	}
+void readParameters(ifstream &in, int *xDimension, int *yDimension, int *noOfElements) {
+    string s;
+    in >> *xDimension >> *yDimension;
+    getline(in, s); // get rid of new line character
+    in >> *noOfElements;
+    getline(in, s); // get rid of new line character
+    cout << "Dimensions of the field: " << "x=" << *xDimension << ", y=" << *yDimension << endl;
+    cout << "Number of non-zero elements: " << *noOfElements << endl;
 }
-Field::~Field ()
-{
-	for (int i=0; i<a; i++)
-	{
-		delete field[a];
-	}
-}
-void Field::showField () const
-{
-	for (int i=0; i<(2*b+1); i++)
-	{
-		cout << "-";													// top of the field
-	}
-	cout << endl;
-	for (int i=0; i<a; i++)
-	{
-		for (int j=0; j<b; j++)
-		{
-			if (field[i][j])
-			{
-				cout << "|" << field [i][j];							// non-zero element within the field
-			}
-			else
-			{
-				cout << "|" << " ";										// zero replaced with a blank symbol
-			}
-		}
-		cout << "|" << endl;
-	}
-	for (int i=0; i<(2*b+1); i++)
-	{
-		cout << "-";													// bottom of the field
-	}
-	cout << endl;	
-}
-void Field::fill (ifstream &in)
-{
-	char currentElement;
-	int asciiCode;
-	string s;
-	for (int i=0; i<a; i++)
-	{
-		for (int j=0; j<b; j++)
-		{
-			in >> currentElement;
-			asciiCode = (int)currentElement;
-			if (asciiCode == 45)										// empty element
-			{
-				field[i][j]=0;											// place 0 into object variable 'field' so that it is not undefined
-			}
-			else if (asciiCode >=48 && asciiCode <= 57)					// is a number
-			{
-				field[i][j]=asciiCode-48;								// first number stored as char has value of 48 (='0')
-			}
-		}
-		getline(in,s); 													// get rid of new line character
-	}
-}
-void readParameters (ifstream &in, int *xDimension, int *yDimension, int *noOfElements)
-{
-	string s;
-	in >> *xDimension >> *yDimension;
-	getline(in,s); 														// get rid of new line character
-	in >> *noOfElements;
-	getline(in,s);	 													// get rid of new line character
-	cout << "Dimensions of the field: " << "x=" << *xDimension << ", y=" << *yDimension << endl;
-	cout << "Number of non-zero elements: " << *noOfElements << endl;
-}
-int main (void)
-{
-	int a,b,n;
+
+int main(void) {
+    int a, b, n;
     ifstream in;
-    in.open (fileName);
-    if (!in.is_open())													// opening the file with input parameters
+    in.open(fileName);
+    if (!in.is_open()) // opening the file with input parameters
     {
         cerr << "Could not open " << fileName << endl;
         return (EXIT_FAILURE);
     }
-    readParameters (in,&a,&b,&n);
-    Field myField (a,b,n);
-    myField.fill (in);
-    myField.showField ();
-    in.close ();
+    readParameters(in, &a, &b, &n);
+    Field myField(a, b, n);
+    myField.fill(in);
+    myField.showField();
+    in.close();
+
+
+
+    /* ALGORITMUS Z EDUXU 
+     * 
+    pro všechna nenulová čísla v mřížce, opakuj
+        vyber (zatím nepoužité) nenulové číslo x z mřížky
+        pro všechny čísla rx a ry (rozměry obdélníku) takové, že rx*ry=x dělej:
+        pro všechny px a py (pozice leveho horniho rohu obdélniku) takové, že px+rx < = a a py+ry < = b dělej
+            pokud překryv s předchozímí obdélníky, zkus jiné px a py
+            obdélník musí obsahovat právě jedno nenulové číslo x, jinak zkus jiné px a py
+            pokud žádné px a py nevyhovuje ⇒ návrat.
+            pokud px a py nalezeno a jednalo se o poslední obdélník ⇒ nalezeno řešení
+    Pokud prohledán stavový prostor, ⇒ nemá řešení.
+     */
+
+    /* NÁŠ ALGORITMUS
+     * 
+     *  myField.rectangleToHeap() // předpřipraví na heap obdélník který je na řadě 
+     *          shapes = rectangles[i].getShapes();
+     *          pro každý tvar vyrob kopii Field a přidej právě zpracovávanému rectangle tvar
+     *          Všechny tyto Field ulož na heap (na heapu je několik větví, každá s jiným tvarem ale pozice zatím nedefinovány)
+     * 
+     *  while(heap is not empty)
+     *          Heap.top().solve() // vyber z heapu první Field a pokračuj v řešení - Protraverzuje strom až do nejlevějšího možného konce, možnosti jít vpravo ukládá na heap (nakopíruje tam celej field ve kterém jsou info kde pokračovat)
+     *                  vezme aktuální obdélník (už má konkrétní tvar) a začne (pokračuje) ve zkoušení pozic
+     *                  bere pozice a kontroluje jestli jsou v pořádku (nesmí překrývat předchozí obdélník (nenulové políčko) ani žádný následující obdélník (nenulové políčko))
+     * 
+     *                  pokud najde vyhovující řešení 
+     *                          zapíše ho (vybarví Field číslem obdélníku), 
+     *                          spočítá součet obvodů (přičte aktuální obdélník)
+     *                          (uvnitř rectangle) posune se v řešení (označí další pozici která se bude vyhledávat - asi "skoro automaticky" nějakým zvyšováním proměnných ve for cyklech) a takovou Field uloží na heap (bude jasné kde pokračovat až to někdo z heapy vezme)
+     *                          pokud další pozice neexistuje na heapu nic neukládá
+     *                          označí obdálník za vyřešenej, provede myField.rectangleToHeap() (přídá novej obdélník do tohohle řešení) a končí; // tohle možná úplně nedodržuje to že půjdu do hloubky ale snad by to teoreticky nemuselo vadit, Ale asi je to jedno protože v tomhle případu stejně musím projít naprosto celej stavovej prostor
+     *                  
+     *                  pokud nenajde vyhovující 
+     *                          tak tento průchod nemá řešení.
+     *                          končí
+     */
+
+
+    /* POZNÁMKY
+     * 
+     * Nešlo by nějak pamatovat si toho míň než celej Field? Asi zbytečný to řešit pokud nebude problém s pamětí
+     * 
+     * Teoreticky pokud znám už nějaké řešení můžu pro svoje řešení počítat obvody a pokud je větší tak to rovnou utnout a nepočítat dál
+     * 
+     * Field vlastně plně udává stav toho algoritmu (vyřešený obdélníky jsou zanesený, na první nedořešenej ukazuje pointer a uchovává si vyzkoušený pozice)
+     * Do haldy se ukládá Field ve kterém je jaký tvar se zpracovává a jaká pozice je na řadě
+     * 
+     * Ta heapa nemůže bít uvnitř Fieldu. Pořád by se kopírovala. Musí být svím způsobem globální. Nebo aspoň definována na začátku mainu
+     * Je třeba vyřešit co se bude používat na tu heapu. Je nutné mít možnost brát první prvek ale i jí například rozdělit a poslat jinému procesoru
+     * 
+     * Rectangles už mít předpřipravený? a bude v nich vygenerovaný všechny možnosti velikostí i smysluplnejch pozic (aby byl v mezích pole)
+     * 
+     * melo by bejt jedno v jakým pořadí jsou ty věci na heapě. Jde se co nejvíc dolů a pravý (levý) stromy se dázej na heapu
+     * 
+     *  clonovat celej Field se všema obdélníkama (deep copy)
+     *          tabulka si uchováva kterej obdelnik se ma zpracovavat
+     *          obdelnik si uchovava kterej tvar a umistění se má zpracovávat.
+     *          (ukládat buď kterej byl provedenej naposledy nebo kterej je teď na řadě)
+     *          při vytvoření obdélníku vygenerovat všechny možnosti velikostí i smysluplnejch pozic (aby byl v mezích pole)
+     *          tím by snad šlo kdykoliv kdy najdu řešení (a existujou ještě jiná) uložit Field na heapu a z ní to pak kdykoliv vzít a pokračovat (všechno je uloženo ve Field a Rectangles)
+     * 
+     *  tabulku vyplňovat číslem vyplňované dlaždice ať vidíme jak to nakonec vypadá to rozdělení
+     */
+
+
+
 }
