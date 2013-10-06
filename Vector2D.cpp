@@ -31,4 +31,8 @@ void Vector2D::setY(int y) {
 int Vector2D::getY() const {
     return y;
 }
+void Vector2D::setXY(int x, int y) {
+    this->x = x;
+    this->y = y;
+}
 

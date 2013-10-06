@@ -10,12 +10,12 @@ using namespace std;
 
 class Field {
 private:
-    int a; //number of lines
+    int a; //number of lines (rows))
     int b; //number of columns
     int n; //number of non-zero elements
     int** field; //representation of the field
-    Rectangle* rectangles; // array of rectangles
-    int currentRect; // id of current processed rectangle
+    RectList rectangles; // list of rectangles
+    int perimetrSum; // sum of perimetres of all rectangles
 public:
     Field(int a, int b, int n);
     Field(const Field& orig);
