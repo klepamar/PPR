@@ -8,8 +8,6 @@ public:
     FieldStack();
     FieldStack(const FieldStack& orig);
     virtual ~FieldStack();
-    
-
 };
 
 #endif	/* FIELDSTACK_H */

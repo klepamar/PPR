@@ -10,7 +10,10 @@ RectList::RectList() {
     this->current = NULL;
 }
 
-RectList::add(Rectangle* rectangle) {
+RectList::~RectList() {	
+}
+
+void RectList::add(Rectangle* rectangle) {
     if (back == NULL) {
         current = back = new RectListItem(rectangle);
     } else {
@@ -18,7 +21,7 @@ RectList::add(Rectangle* rectangle) {
     }
 }
 
-RectList::toNext() {
+void RectList::toNext() {
     current = current->next;
 }
 

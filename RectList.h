@@ -1,8 +1,9 @@
 #ifndef RECTLIST_H
 #define	RECTLIST_H
 
-#include "Rectangle.h"
 #include <stdio.h>
+
+#include "Rectangle.h"
 
 /**
  * single-linked simple list of rectangles

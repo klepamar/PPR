@@ -3,8 +3,9 @@
 
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>     // for atoi
 
-#include "Rectangle.h"
+#include "RectList.h"
 
 using namespace std;
 

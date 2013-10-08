@@ -3,8 +3,6 @@
 
 #include "Vector2D.h"
 
-
-
 using namespace std;
 
 class Rectangle {

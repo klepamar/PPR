@@ -23,41 +23,36 @@ Field::~Field() {
 }
 
 void Field::showField() const {
-    for (int i = 0; i < (2 * b + 1); i++) {
+    for (int i = 0; i < (5 * b + 1); i++) {
         cout << "-"; // top of the field
     }
     cout << endl;
     for (int i = 0; i < a; i++) {
+		cout << "|";
         for (int j = 0; j < b; j++) {
             if (field[i][j]) {
-                cout << "|" << field [i][j]; // non-zero element within the field
-            } else {
-                cout << "|" << " "; // zero replaced with a blank symbol
+				printf ("%4d|",field [i][j]);
             }
+            else {
+				printf ("    |");
+			}
         }
-        cout << "|" << endl;
+        cout << endl;
     }
-    for (int i = 0; i < (2 * b + 1); i++) {
+    for (int i = 0; i < (5 * b + 1); i++) {
         cout << "-"; // bottom of the field
     }
     cout << endl;
 }
 
 void Field::fill(ifstream &in) {
-    char currentElement;
-    int asciiCode;
-    string s;
+    int currentElement;
+    string s,inputElement;
     for (int i = 0; i < a; i++) {
         for (int j = 0; j < b; j++) {
-            in >> currentElement;
-            asciiCode = (int) currentElement;
-            if (asciiCode == 45) // empty element
-            {
-                field[i][j] = 0; // place 0 into object variable 'field' so that it is not undefined
-            } else if (asciiCode >= 48 && asciiCode <= 57) // is a number
-            {
-                field[i][j] = asciiCode - 48; // first number stored as char has value of 48 (='0')
-            }
+            in >> inputElement;
+			currentElement = atoi (inputElement.c_str());	// atoi returns 0 if invalid value found/zero discovered -> invalid value discarded and silently ignored
+            field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
         }
         getline(in, s); // get rid of new line character
     }
