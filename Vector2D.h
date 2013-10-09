@@ -1,6 +1,10 @@
 #ifndef VECTOR2D_H
 #define	VECTOR2D_H
 
+#include <iostream>
+
+using namespace std;
+
 class Vector2D {
 public:
     Vector2D();

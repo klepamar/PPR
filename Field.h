@@ -11,18 +11,23 @@ using namespace std;
 
 class Field {
 private:
-    int a; //number of lines (rows))
-    int b; //number of columns
-    int n; //number of non-zero elements
+    int const dimX, dimY;
     int** field; //representation of the field
-    RectList rectangles; // list of rectangles
-    int perimetrSum; // sum of perimetres of all rectangles
+    RectList* rects; // rectangles - list of rectangles
+    int perSum; // perimetrSum - sum of perimetres of all rectangles
+
 public:
-    Field(int a, int b, int n);
+    Field(Vector2D dimension);
     Field(const Field& orig);
     virtual ~Field();
+
+    RectList* getRectangles();
+
     void showField() const;
-    void fill(ifstream &in);
+    void fill(istream &in);
+
+    bool solveRectShape();
+    bool solveRectPos();
 };
 
 #endif	/* FIELD_H */

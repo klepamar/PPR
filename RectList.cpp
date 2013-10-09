@@ -6,19 +6,25 @@ RectList::RectListItem::RectListItem(Rectangle* rectangle) {
 }
 
 RectList::RectList() {
-    this->back = NULL;
+    this->size = 0;
+    this->tail = NULL;
     this->current = NULL;
 }
 
-RectList::~RectList() {	
+RectList::~RectList() {
+}
+
+int RectList::getSize() {
+    return size;
 }
 
 void RectList::add(Rectangle* rectangle) {
-    if (back == NULL) {
-        current = back = new RectListItem(rectangle);
+    if (tail == NULL) {
+        current = tail = new RectListItem(rectangle);
     } else {
-        back->next = new RectListItem(rectangle);
+        tail->next = new RectListItem(rectangle);
     }
+    size++;
 }
 
 void RectList::toNext() {

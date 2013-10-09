@@ -17,14 +17,18 @@ private:
         Rectangle* rect;
         RectListItem(Rectangle* rectangle);
     };
-
-    RectListItem* back;
+    
+    int size;
+    RectListItem* tail;
     RectListItem* current;
 
 public:
     RectList();
     RectList(const RectList& orig);
     virtual ~RectList();
+    
+    int getSize();
+    
     void add(Rectangle* rectangle);
     void toNext();
 };

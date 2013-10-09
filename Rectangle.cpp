@@ -7,12 +7,14 @@ Rectangle::Rectangle(int rowPos, int colPos, int area) {
 }
 
 Rectangle::Rectangle(const Rectangle& orig) {
+    throw "Not implemented yet";
 }
 
 Rectangle::~Rectangle() {
 }
 
 Vector2D* Rectangle::getShapes() {
+    throw "Not implemented yet";
     // všechny dvojice takové že x*y = area
 }
 
