@@ -16,7 +16,12 @@ public:
     Rectangle(int rowPos, int colPos, int volume);
     Rectangle(const Rectangle& orig);
     virtual ~Rectangle();
-    Vector2D* getShapes(); // Create and return array of vectors - Possible height and width of the rectangle.
+
+    void setShape(Vector2D shape);
+    bool hasShape();
+
+    int getShapes(Vector2D* &shapes); // Create and return array of vectors - Possible height and width of the rectangle.
+
 };
 
 #endif	/* RECTANGLE_H */

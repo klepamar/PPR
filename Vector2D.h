@@ -2,9 +2,15 @@
 #define	VECTOR2D_H
 
 #include <iostream>
+#include <climits>
+#include <sstream>
 
 using namespace std;
 
+/**
+ * Two-dimensional vector.
+ * Vector (INT_MIN, INT_MIN) for undefined vector; 
+ */
 class Vector2D {
 public:
     Vector2D();
@@ -16,6 +22,13 @@ public:
     void setY(int y);
     int getY() const;
     void setXY(int x, int y);
+    bool isUndefined();
+    
+    string toVectorString() const;
+    string toPointString() const;
+    string toDimensionString() const;
+    friend ostream& operator<<(ostream& os, const Vector2D& vector);
+
 
 private:
     int x, y;

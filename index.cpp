@@ -49,6 +49,7 @@ bool initField(Field* &field, const char* &fileName) {
 int main(void) {
     FieldStack stack;
     Field* field;
+    Field* bestField = NULL;
 
     try {
         initField(field, fileName);
@@ -56,6 +57,9 @@ int main(void) {
         cout << ex << endl;
     }
     field->showField();
+    
+    cout << Vector2D() << endl;
+    cout << Vector2D(1, 1) << endl;
 
     /* ALGORITMUS Z EDUXU 
      * 
@@ -112,22 +116,32 @@ int main(void) {
              *  řeší tvar aktuálního obdélníku, první tvar použije pro tento field ostatní pro nové fieldy které vloží na stack
              *  pokud je treba doresit pozice tak neresit tvar ale rovnou return
              */
-            field->solveRectShape();
+            field->solveRectShape(stack);
 
-            /**
+            /*
              * mám tvar - nový nebo nedořešený
              * řeším pozice zkoušením všech možností a kontrolováním přípustnosti (překrývá jen nulová pole)
              *
              * pokud najdu řešení tak označit, posunout se, přičíst obvod, zkontrolovat smysl řešení - uvnitř funkce
              * pokud nenajdu řešení konec DFS, pokud nema cenu pokračovat tak konec DFS
              */
-            if (field->solveRectPos() == false) { // nenašel řešení => konec DFS
+            if (field->solveRectPos(stack) == false) { // nenašel řešení, řešení je horší než aktuálně nejlepší => konec DFS
                 break;
             }
         }
+        
+        /*
+         * zaznamenání nejlepšího řešení
+         */
+        if(bestField == NULL || *bestField < *field) {
+            delete bestField;
+            bestField = field;
+        } else {
+            delete field;
+        }
 
-        /**
-         * načtení dalšího stavu k řešení
+        /*
+         * načtení dalšího stavu k řešení nového DFS
          * ukončující podmínka
          */
         field = stack.top();
@@ -139,6 +153,8 @@ int main(void) {
 
 
     /* POZNÁMKY
+     * 
+     * Nevím jestli je úplně správně přetížení tý funkce na porovnání fieldů
      * 
      * Mít správně destruktory
      * 

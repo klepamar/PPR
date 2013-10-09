@@ -1,7 +1,7 @@
 #ifndef FIELDSTACK_H
 #define	FIELDSTACK_H
 
-#include "Field.h"
+class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
 
 class FieldStack {
 private:

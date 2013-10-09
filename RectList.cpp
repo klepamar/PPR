@@ -18,7 +18,11 @@ int RectList::getSize() {
     return size;
 }
 
-void RectList::add(Rectangle* rectangle) {
+Rectangle* RectList::getCurrent() {
+    return current->rect;
+}
+
+void RectList::append(Rectangle* rectangle) {
     if (tail == NULL) {
         current = tail = new RectListItem(rectangle);
     } else {

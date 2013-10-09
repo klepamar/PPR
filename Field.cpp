@@ -51,7 +51,7 @@ void Field::showField() const {
         cout << endl;
 
         // inner border
-        if (i != dimX-1) {
+        if (i != dimX - 1) {
             cout << "├";
             for (int i = 0; i < dimY - 1; i++) {
                 cout << "────┼";
@@ -59,7 +59,7 @@ void Field::showField() const {
             cout << "────┤" << endl;
         }
     }
-    
+
     // bottom border
     cout << "└";
     for (int i = 0; i < dimY - 1; i++) {
@@ -79,21 +79,41 @@ void Field::fill(istream &in) {
             field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
 
             if (field[i][j] != 0) {
-                rects->add(new Rectangle(i, j, field[i][j]));
+                rects->append(new Rectangle(i, j, field[i][j]));
             }
         }
         getline(in, s); // get rid of new line character
     }
 }
 
-/**
- * 
- * @return Return false if current rectangle has a shape <=> the rectangle is not resolved (some position eft to be tested).
- */
-bool Field::solveRectShape() {
-    throw "Not implemented yet";
+bool operator<(const Field& left, const Field& right) {
+    return right.perSum - left.perSum;
 }
 
-bool Field::solveRectPos() {
+/**
+ * 
+ * @return Return false if current rectangle has a shape <=> the rectangle is not resolved (some position left to be tested).
+ */
+bool Field::solveRectShape(FieldStack &stack) {
+    Field* newField;
+    Vector2D* shapes;
+
+    if (rects->getCurrent()->hasShape()) { // current rectangle has shape = not fully resolved => do not shape again, continue in positioning
+        return false;
+    }
+
+    int size = rects->getCurrent()->getShapes(shapes);
+
+    rects->getCurrent()->setShape(shapes[0]); // use first shape for this field
+    for (int i = 1; i < size; i++) { // use other shapes for copied field pushed to stack for further solving
+        newField = new Field(*this);
+        newField->getRectangles()->getCurrent()->setShape(shapes[i]);
+        stack.push(newField);
+    }
+
+    return true;
+}
+
+bool Field::solveRectPos(FieldStack &stack) {
     throw "Not implemented yet";
 }
