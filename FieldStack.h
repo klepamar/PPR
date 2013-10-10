@@ -24,7 +24,7 @@ public:
     virtual ~FieldStack();
 
     void push(Field* field);
-    Field* top(); // pop included
+    Field* pop(); // pop included
 };
 
 #endif	/* FIELDSTACK_H */

@@ -18,9 +18,9 @@ public:
     virtual ~Rectangle();
 
     void setShape(Vector2D shape);
+    void setPosition(Vector2D position);
     bool hasShape();
-
-    int getShapes(Vector2D* &shapes); // Create and return array of vectors - Possible height and width of the rectangle.
+    int getArea();
 
 };
 

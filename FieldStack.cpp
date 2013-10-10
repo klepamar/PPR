@@ -13,7 +13,7 @@ void FieldStack::push(Field* field) {
     throw "Not implemented yet";
 }
 
-Field* FieldStack::top() {
+Field* FieldStack::pop() {
     throw "Not implemented yet";
 }
 

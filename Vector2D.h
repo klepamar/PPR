@@ -23,6 +23,7 @@ public:
     int getY() const;
     void setXY(int x, int y);
     bool isUndefined();
+    int getArea();
     
     string toVectorString() const;
     string toPointString() const;

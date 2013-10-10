@@ -24,16 +24,18 @@ public:
     Field(const Field& orig);
     virtual ~Field();
 
+    Vector2D getDimension();
     RectList* getRectangles();
+    int getPerimetrSum();
     void showField() const;
     void fill(istream &in);
-    
-    friend bool operator<(const Field& left, const Field& right);
 
-    bool solveRectShape(FieldStack &stack);
-    bool solveRectPos(FieldStack &stack);
-    
-    
+    bool solveRectShapes(FieldStack &stack);
+    int findRectShapes(int rectangleArea, Vector2D* &shapes); // Create and return array of vectors - Possible heights and widths of the rectangle.   
+
+    bool solveRectPoss(FieldStack &stack);
+    int findRectPoss(Rectangle* rectangle, Vector2D* &positions);
+    void markRect(Rectangle* rectangle);
 };
 
 #endif	/* FIELD_H */

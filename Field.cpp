@@ -21,6 +21,10 @@ Field::~Field() {
     delete rects;
 }
 
+Vector2D Field::getDimension() {
+    return Vector2D(dimX, dimY);
+}
+
 RectList* Field::getRectangles() {
     return rects;
 }
@@ -29,7 +33,7 @@ RectList* Field::getRectangles() {
 
 void Field::showField() const {
 
-    cout << "Dimensions: " << dimX << "x" << dimY << endl;
+    cout << "dimensions: " << dimX << "x" << dimY << endl;
     cout << "no rectangles: " << rects->getSize() << endl;
 
     // top border
@@ -86,26 +90,22 @@ void Field::fill(istream &in) {
     }
 }
 
-bool operator<(const Field& left, const Field& right) {
-    return right.perSum - left.perSum;
+int Field::getPerimetrSum() {
+    return perSum;
 }
 
 /**
  * 
  * @return Return false if current rectangle has a shape <=> the rectangle is not resolved (some position left to be tested).
  */
-bool Field::solveRectShape(FieldStack &stack) {
+bool Field::solveRectShapes(FieldStack &stack) {
     Field* newField;
     Vector2D* shapes;
 
-    if (rects->getCurrent()->hasShape()) { // current rectangle has shape = not fully resolved => do not shape again, continue in positioning
-        return false;
-    }
+    int size = this->findRectShapes(rects->getCurrent()->getArea(), shapes);
 
-    int size = rects->getCurrent()->getShapes(shapes);
-
-    rects->getCurrent()->setShape(shapes[0]); // use first shape for this field
-    for (int i = 1; i < size; i++) { // use other shapes for copied field pushed to stack for further solving
+    rects->getCurrent()->setShape(shapes[0]); // use first shape for for rectangle from this field
+    for (int i = 1; i < size; i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setShape(shapes[i]);
         stack.push(newField);
@@ -114,6 +114,50 @@ bool Field::solveRectShape(FieldStack &stack) {
     return true;
 }
 
-bool Field::solveRectPos(FieldStack &stack) {
+/**
+ * Find all possible shapes for given area in that field.
+ * @param rectArea area of rectangle
+ * @param shapes in/out pointer to array of founded shapes
+ * @return size of array
+ */
+int Field::findRectShapes(int rectArea, Vector2D* &shapes) {
     throw "Not implemented yet";
+    // všechny dvojice takové že x*y = area && x nepřesahuje počet řádků && y nepřesahuje počet sloupců
+    // šlo by static pole a ukládat si (jeho velikost je max a*b) a počítat jenom pokuid už jsem to nevypočítal
+}
+
+bool Field::solveRectPoss(FieldStack &stack) {
+    Field* newField;
+    Vector2D* poss;
+
+    int size = this->findRectPoss(rects->getCurrent(), poss);
+
+    if (size == 0) { 
+        return false; // no possible position
+    }
+
+    rects->getCurrent()->setPosition(poss[0]); // use first position for rectangle from this field
+    this->markRect(rects->getCurrent()); // write down the rectangle
+    for (int i = 1; i < size; i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
+        newField = new Field(*this);
+        newField->getRectangles()->getCurrent()->setPosition(poss[i]);
+        this->markRect(newField); // write down the rectangle
+        stack.push(newField);
+    }
+
+    return true;
+}
+
+int Field::findRectPoss(Rectangle* rectangle, Vector2D* &positions) {
+    throw "Not implemented yet";
+
+    // dva fory
+    // najít horní dolní levou pravou zarážku
+    // rovnou testovat jestli je tato pozice přípustná (takovyto rect prekryva jen nuly)
+}
+
+void Field::markRect(Rectangle* rect) {
+    throw "Not implemented yet";
+
+    // vybarvit, přičíst obvod, posunout (nastavit rect jako vyřešenej)
 }

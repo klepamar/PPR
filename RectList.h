@@ -2,6 +2,8 @@
 #define	RECTLIST_H
 
 #include <stdio.h>
+
+#include "Rectangle.h"
 class Rectangle; // instead of include to avoid cycle dependency, no need of Rectangle functions
 
 /**
@@ -19,8 +21,9 @@ private:
     };
 
     int size;
-    RectListItem* tail;
-    RectListItem* current;
+    int areaSum;
+    RectListItem* tailItem;
+    RectListItem* currentItem;
 
 public:
     RectList();
@@ -31,7 +34,9 @@ public:
     Rectangle* getCurrent();
 
     void append(Rectangle* rectangle);
-    void toNext();
+    Rectangle* toNext();
+    
+    int getAreaSum();
 };
 
 #endif	/* RECTLIST_H */

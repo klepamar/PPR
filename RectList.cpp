@@ -1,4 +1,5 @@
 #include "RectList.h"
+#include "Rectangle.h"
 
 RectList::RectListItem::RectListItem(Rectangle* rectangle) {
     this->next = NULL;
@@ -7,8 +8,9 @@ RectList::RectListItem::RectListItem(Rectangle* rectangle) {
 
 RectList::RectList() {
     this->size = 0;
-    this->tail = NULL;
-    this->current = NULL;
+    this->areaSum = 0;
+    this->tailItem = NULL;
+    this->currentItem = NULL;
 }
 
 RectList::~RectList() {
@@ -19,19 +21,25 @@ int RectList::getSize() {
 }
 
 Rectangle* RectList::getCurrent() {
-    return current->rect;
+    return currentItem->rect;
 }
 
-void RectList::append(Rectangle* rectangle) {
-    if (tail == NULL) {
-        current = tail = new RectListItem(rectangle);
+void RectList::append(Rectangle* rect) {
+    if (tailItem == NULL) {
+        currentItem = tailItem = new RectListItem(rect);
     } else {
-        tail->next = new RectListItem(rectangle);
+        tailItem->next = new RectListItem(rect);
     }
+    areaSum += rect->getArea();
     size++;
 }
 
-void RectList::toNext() {
-    current = current->next;
+Rectangle* RectList::toNext() {
+    currentItem = currentItem->next;
+    return currentItem;
+}
+
+int RectList::getAreaSum() {
+    return areaSum;
 }
 

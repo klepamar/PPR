@@ -45,6 +45,10 @@ bool Vector2D::isUndefined() {
     }
 }
 
+int Vector2D::getArea() {
+    return x*y;
+}
+
 string Vector2D::toVectorString() const {
     ostringstream ss;
     ss << "(" << x << ", " << y << ")";
