@@ -37,6 +37,7 @@ public:
     Rectangle* toNext();
     
     int getAreaSum();
+    int getPerimeterSum();
 };
 
 #endif	/* RECTLIST_H */

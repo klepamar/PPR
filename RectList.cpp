@@ -36,10 +36,16 @@ void RectList::append(Rectangle* rect) {
 
 Rectangle* RectList::toNext() {
     currentItem = currentItem->next;
-    return currentItem;
+    return currentItem->rect;
 }
 
 int RectList::getAreaSum() {
     return areaSum;
+}
+
+int RectList::getPerimeterSum() {
+    throw "Not implemented yet";
+
+    // spočítá přes všechny rect, bylo by vhodný si nějak dát vědět že to je/není celkovej součet
 }
 

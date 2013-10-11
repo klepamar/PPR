@@ -63,10 +63,10 @@ string Vector2D::toPointString() const {
 
 string Vector2D::toDimensionString() const {
     ostringstream ss;
-    ss <<  x << "x" << y;
+    ss << x << "x" << y;
     return ss.str();
 }
- 
+
 ostream& operator<<(ostream& os, const Vector2D& vector) {
     os << vector.toVectorString();
     return os;

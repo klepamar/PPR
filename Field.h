@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdlib.h>     // for atoi
+#include <stdlib.h>
+#include <algorithm> 
 
 #include "Vector2D.h"
 #include "Rectangle.h"
@@ -30,12 +31,12 @@ public:
     void showField() const;
     void fill(istream &in);
 
+    // use current rectangle
     bool solveRectShapes(FieldStack &stack);
-    int findRectShapes(int rectangleArea, Vector2D* &shapes); // Create and return array of vectors - Possible heights and widths of the rectangle.   
-
-    bool solveRectPoss(FieldStack &stack);
-    int findRectPoss(Rectangle* rectangle, Vector2D* &positions);
-    void markRect(Rectangle* rectangle);
+    vector<Vector2D> findRectShapes();
+    bool solveRectPositions(FieldStack &stack);
+    vector<Vector2D> findRectPositions();
+    void colorField();
 };
 
 #endif	/* FIELD_H */

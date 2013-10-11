@@ -3,6 +3,7 @@
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->rects = new RectList();
     this->field = new int*[dimX];
+    this->perSum = 0;
     for (int i = 0; i < dimX; i++) {
         field[i] = new int[dimY];
     }
@@ -29,12 +30,14 @@ RectList* Field::getRectangles() {
     return rects;
 }
 
-// for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
-
+/*
+ * for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
+ */
 void Field::showField() const {
 
     cout << "dimensions: " << dimX << "x" << dimY << endl;
     cout << "no rectangles: " << rects->getSize() << endl;
+    // @TODO vypsat součet obvodu, nějak řešit jestli je to celkovej nebo jen částečnej
 
     // top border
     cout << "┌";
@@ -82,8 +85,8 @@ void Field::fill(istream &in) {
             currentElement = atoi(inputElement.c_str()); // atoi returns 0 if invalid value found/zero discovered -> invalid value discarded and silently ignored
             field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
 
-            if (field[i][j] != 0) {
-                rects->append(new Rectangle(i, j, field[i][j]));
+            if (field[i][j] != 0) { // create new rectangle
+                rects->append(new Rectangle(i, j, field[i][j], dimX, dimY));
             }
         }
         getline(in, s); // get rid of new line character
@@ -91,73 +94,109 @@ void Field::fill(istream &in) {
 }
 
 int Field::getPerimetrSum() {
-    return perSum;
+    throw "Not implemented yet";
+
+    // zeptám se rectListu
 }
 
-/**
- * 
- * @return Return false if current rectangle has a shape <=> the rectangle is not resolved (some position left to be tested).
- */
 bool Field::solveRectShapes(FieldStack &stack) {
     Field* newField;
-    Vector2D* shapes;
+    vector<Vector2D> shapes;
 
-    int size = this->findRectShapes(rects->getCurrent()->getArea(), shapes);
+    shapes = this->findRectShapes();
 
     rects->getCurrent()->setShape(shapes[0]); // use first shape for for rectangle from this field
-    for (int i = 1; i < size; i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
+    for (int i = 1; i < shapes.size(); i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setShape(shapes[i]);
         stack.push(newField);
     }
 
-    return true;
+    return true; // every rectangle has at least one possible shape
 }
 
-/**
- * Find all possible shapes for given area in that field.
- * @param rectArea area of rectangle
- * @param shapes in/out pointer to array of founded shapes
- * @return size of array
- */
-int Field::findRectShapes(int rectArea, Vector2D* &shapes) {
-    throw "Not implemented yet";
-    // všechny dvojice takové že x*y = area && x nepřesahuje počet řádků && y nepřesahuje počet sloupců
-    // šlo by static pole a ukládat si (jeho velikost je max a*b) a počítat jenom pokuid už jsem to nevypočítal
+vector<Vector2D> Field::findRectShapes() {
+    return rects->getCurrent()->getPreparedShapes();
 }
 
-bool Field::solveRectPoss(FieldStack &stack) {
+bool Field::solveRectPositions(FieldStack &stack) {
     Field* newField;
-    Vector2D* poss;
+    vector<Vector2D> poss;
 
-    int size = this->findRectPoss(rects->getCurrent(), poss);
+    poss = this->findRectPositions();
 
-    if (size == 0) { 
-        return false; // no possible position
+    if (poss.size() == 0) { // no allowable position
+        return false;
     }
 
-    rects->getCurrent()->setPosition(poss[0]); // use first position for rectangle from this field
-    this->markRect(rects->getCurrent()); // write down the rectangle
-    for (int i = 1; i < size; i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
+    this->rects->getCurrent()->setPosition(poss[0]); // use first position for rectangle from this field
+    for (int i = 1; i < poss.size(); i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setPosition(poss[i]);
-        this->markRect(newField); // write down the rectangle
         stack.push(newField);
     }
 
     return true;
 }
 
-int Field::findRectPoss(Rectangle* rectangle, Vector2D* &positions) {
-    throw "Not implemented yet";
+vector<Vector2D> Field::findRectPositions() {
+    Rectangle* rect = rects->getCurrent();
+    vector<Vector2D> poss;
 
-    // dva fory
-    // najít horní dolní levou pravou zarážku
-    // rovnou testovat jestli je tato pozice přípustná (takovyto rect prekryva jen nuly)
+    // auxiliary variables
+    int baseX = rect->getBasePosition().getX();
+    int baseY = rect->getBasePosition().getY();
+    int posX = rect->getPosition().getX();
+    int posY = rect->getPosition().getY();
+    int shapeX = rect->getShape().getX();
+    int shapeY = rect->getShape().getY();
+    bool flag = true;
+
+    // find top, bottom, left, right "blockers"
+    int top = max(baseX - shapeX + 1, 0);
+    int bottom = min(baseX + shapeX - 1, dimX - 1);
+    int left = max(baseY - shapeY + 1, 0);
+    int right = min(baseY + shapeY - 1, dimY - 1);
+
+    int tmp = field[baseX][baseY];
+    field[baseX][baseY] = 0; // easier checking
+    for (int i = top; i <= bottom; i++) {
+        for (int j = left; j <= right; j++) {
+
+            // i,j - every possible position (of top left corner of this (shaped) rectangle
+            for (int k = 0; k < shapeX; k++) {
+                for (int l = 0; l < shapeY; l++) {
+                    // check
+                    if (field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
+                        flag = false;
+                        k = shapeX; // break outer for (where k is control variable)
+                    }
+                }
+            }
+            if (flag == true) { // it is allowable position
+                poss.push_back(Vector2D(i, j));
+            }
+            flag = true; // reset flag
+
+        }
+    }
+    field[baseX][baseY] = tmp;
+
+    return poss;
 }
 
-void Field::markRect(Rectangle* rect) {
-    throw "Not implemented yet";
+void Field::colorField() {
+    Rectangle* rect = rects->getCurrent();
+    static int color = 1; // @TODO nebude fungovat pro předávání mezi procesorama
 
-    // vybarvit, přičíst obvod, posunout (nastavit rect jako vyřešenej)
+    // color field
+    for (int i = rect->getPosition().getX(); i < rect->getShape().getX(); i++) {
+        for (int j = rect->getPosition().getY(); j < rect->getShape().getY(); j++) {
+            field[i][j] = color;
+        }
+    }
+    color++;
+
+    // add perimeter
+    perSum += rect->getPerimeter();
 }
