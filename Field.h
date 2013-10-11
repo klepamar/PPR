@@ -14,7 +14,7 @@ using namespace std;
 
 class Field {
 private:
-    const int dimX, dimY; // dimensions of the field
+    int dimX, dimY; // dimensions of the field
     int** field; //representation of the field
     RectList* rects; // rectangles - list of rectangles
     int perSum; // perimetrSum - sum of perimeters of all rectangles initially set to 0
@@ -37,6 +37,8 @@ public:
     bool solveRectPoss(FieldStack &stack); // save all combinations of starting position of a rectangle of the given dimensions onto the stack
     int findRectPoss(Rectangle* rectangle, Vector2D* &positions); // find all possible positions of a rectangle of the given dimensions
     void markRect(Rectangle* rectangle);
+    
+    Field & operator= (const Field & orig);
 };
 
 #endif	/* FIELD_H */

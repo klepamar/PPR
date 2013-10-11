@@ -26,6 +26,30 @@ Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(thi
 	}
 }
 
+Field & Field::operator= (const Field & orig) {
+    if (this == &orig) // prevent from assignment to itself
+        return *this;
+        
+    this->dimX = orig.dimX; // copy elements passed by value
+    this->dimY = orig.dimY;
+    this->perSum = orig.perSum;	
+    
+    this->rects = orig.rects; // use RectList overloaded operator= function to create RectList*
+   
+    this->field = new int*[dimX]; // create int **field
+    for (int i = 0; i < dimX; i++) {
+        field[i] = new int[dimY];
+    }
+    
+    for (int i = 0; i < dimX; i++){ // fill original values into int ** field
+		for (int j = 0; j < dimY; j++){
+			this->field[i][j] = orig.field[i][j];
+		}
+	}
+	
+	return *this; // do not forget to return address of the object
+}
+
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {
         delete field[dimX];
