@@ -1,6 +1,18 @@
 #ifndef FIELDSTACK_H
 #define	FIELDSTACK_H
 
+/*
+ * ==3==
+ * ==2==
+ * ==1==
+ * =dno=
+ * 
+ * stack rastie smerom zvrchu, t.j. FieldStack.pop() vrati hodnotu "3"
+ * z pohladu "3" je 3->below = "2"
+ * z pohladu "3" je 3->upper = "NULL"
+ * 
+ * */
+
 class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
 
 class FieldStack {
@@ -8,10 +20,14 @@ private:
     
     class FieldStackItem {
     public:
-        FieldStackItem* next;
-        FieldStackItem* prev;
+        FieldStackItem* upper;
+        FieldStackItem* below;
         Field* field;
-        FieldStackItem(Field* field);
+        FieldStackItem(Field* field)
+        {
+			this->upper = this->below = NULL;
+			this->field = field; // call overloaded Field operator= function
+		}
     };
     
     int size;
