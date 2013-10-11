@@ -51,3 +51,14 @@ int Rectangle::getArea() {
     return area;
 }
 
+Rectangle & Rectangle::operator= (const Rectangle & orig)
+{
+    if (this == &orig) // prevent from assignment to itself
+        return *this;
+    this->pos = orig.pos; // same as copy constructor...
+    this->basePos = orig.basePos;
+    this->shape = orig.shape;
+    this->area = orig.area;
+    
+    return *this; // ... but also need to return address of the current object
+}

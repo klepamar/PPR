@@ -25,6 +25,8 @@ public:
 	Vector2D getBasePosition () const;
     bool hasShape();
     int getArea();
+    
+    Rectangle & operator= (const Rectangle & orig);
 
 };
 

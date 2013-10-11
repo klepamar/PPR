@@ -43,7 +43,7 @@ RectList* Field::getRectangles() const {
     return this->rects; // return an array of rectangles
 }
 
-int Field::getPerimetrSum() {
+int Field::getPerimetrSum() const {
     return this->perSum;
 }
 
