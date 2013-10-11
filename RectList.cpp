@@ -22,7 +22,7 @@ RectList::RectList(const RectList& orig) {
 		append (temp->rect);
 		temp = temp->next;
 	}
-	// after this, all pointers and number of rectangles within the list should be updated automatically (=handled by "append" procedure)
+	// after this, all pointers and number of rectangles within the list/overall area should be updated automatically (=handled by "append" procedure)
 }
 
 RectList::~RectList() {
@@ -33,6 +33,7 @@ RectList::~RectList() {
 		currentItem = currentItem->next;
 		delete temp;
 	}
+	this->tailItem = this->currentItem = this->firstItem = NULL;
 }
 
 bool RectList::isEmpty() const { // this check should correspond to number of "registered" rectangles, i.e. value of "size" variable

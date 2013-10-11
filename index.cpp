@@ -15,7 +15,7 @@ const char *fileName = "vstup.txt";
  * @param fileName
  * @return status
  */
-bool initField(Field* &field, const char* fileName) {
+void initField(Field* &field, const char* fileName) {
     int a, b; // a, b - dimension of field
     int n; // number of non-zero numbers
     string dummy;
@@ -28,9 +28,9 @@ bool initField(Field* &field, const char* fileName) {
     }
 
     // read parameters
-    in >> a >> b;
+    in >> a >> b; // size of field
     getline(in, dummy); // get rid of new line character
-    in >> n;
+    in >> n; // number of rectangles within the field
     getline(in, dummy); // get rid of new line character
 
     // create new field and fill with data
@@ -50,7 +50,7 @@ bool initField(Field* &field, const char* fileName) {
 }
 
 int main(void) {
-    FieldStack stack;
+    FieldStack stack; // use an implicit constructor to initialise stack pointers & size
     Field* field;
     Field* bestField = NULL;
 
@@ -94,8 +94,8 @@ int main(void) {
             if (field->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
                 // zaznamenání nej řešení
                 if (bestField == NULL || field->getPerimetrSum() < bestField->getPerimetrSum()) {
-                    delete bestField;
-                    bestField = field;
+                    delete bestField; // klepo: chyba - nemozes delete pokial je splnena prva podmienka, t.j. bestField == NULL
+                    bestField = field; // vola overloaded funkciu operator= triedy Field
                 } else {
                     delete field;
                 }

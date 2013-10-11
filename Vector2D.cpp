@@ -11,9 +11,12 @@ Vector2D::Vector2D(int x, int y) {
 }
 
 Vector2D::Vector2D(const Vector2D& orig) {
+	this->x = orig.x;
+	this->y = orig.y;
 }
 
 Vector2D::~Vector2D() {
+	// no need to implement, since all parameters in consturctors are passed as values
 }
 
 void Vector2D::setX(int x) {

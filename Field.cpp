@@ -2,7 +2,7 @@
 
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
-    this->rects = new RectList();
+    this->rects = new RectList(); // create an empty RectList
     this->field = new int*[dimX];
     for (int i = 0; i < dimX; i++) {
         field[i] = new int[dimY];
@@ -35,12 +35,16 @@ Field::~Field() {
     delete rects;
 }
 
-Vector2D Field::getDimension() {
+Vector2D Field::getDimension() const {
     return Vector2D(dimX, dimY);
 }
 
-RectList* Field::getRectangles() {
-    return rects;
+RectList* Field::getRectangles() const {
+    return this->rects; // return an array of rectangles
+}
+
+int Field::getPerimetrSum() {
+    return this->perSum;
 }
 
 // for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
@@ -102,10 +106,6 @@ void Field::fill(istream &in) {
         }
         getline(in, s); // get rid of new line character
     }
-}
-
-int Field::getPerimetrSum() {
-    return perSum;
 }
 
 /**
