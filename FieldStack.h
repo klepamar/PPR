@@ -15,8 +15,8 @@ private:
     };
     
     int size;
-    Field* topItem;
-    Field* bottomItem; // mohlo by se hodit potom pro to půlení kdy od zadu vezmu nějakou část (asi ne přímo polovinu protože spodní elementy jsou víc u vrchu stromu takže náročnější na výpočet)
+    FieldStackItem* topItem;
+    FieldStackItem* bottomItem; // mohlo by se hodit potom pro to půlení kdy od zadu vezmu nějakou část (asi ne přímo polovinu protože spodní elementy jsou víc u vrchu stromu takže náročnější na výpočet)
 
 public:
     FieldStack();
@@ -25,6 +25,7 @@ public:
 
     void push(Field* field);
     Field* pop(); // pop included
+    bool isEmpty();
 };
 
 #endif	/* FIELDSTACK_H */

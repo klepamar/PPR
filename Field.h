@@ -17,7 +17,7 @@ private:
     int const dimX, dimY;
     int** field; //representation of the field
     RectList* rects; // rectangles - list of rectangles
-    int perSum; // perimetrSum - sum of perimeters of all rectangles
+    int perSum; // perimetrSum - sum of perimeters of all rectangles initially set to 0
 
 public:
     Field(Vector2D dimension);

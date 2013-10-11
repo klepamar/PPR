@@ -1,6 +1,7 @@
 #include "Field.h"
 
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
+    this->perSum = 0;
     this->rects = new RectList();
     this->field = new int*[dimX];
     for (int i = 0; i < dimX; i++) {
@@ -8,8 +9,21 @@ Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()
     }
 }
 
-Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY) {
-    throw "Not implemented yet";
+Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(this->perSum) {
+    //copy all simple elements
+    this->rects = orig.rects; //call overloaded RectList operator=
+    
+    //create a new field
+    this->field = new int*[dimX];
+    for (int i = 0; i < dimX; i++) {
+        field[i] = new int[dimY];
+    }
+    //copy values stored in the original field
+    for (int i = 0; i < dimX; i++)}
+		for (int j = 0; j < dimY; j++){
+			this->field[i][j] = orig.field[i][j];
+		}
+	}
 }
 
 Field::~Field() {
