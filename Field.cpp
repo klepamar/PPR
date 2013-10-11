@@ -19,7 +19,7 @@ Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(thi
         field[i] = new int[dimY];
     }
     //copy values stored in the original field
-    for (int i = 0; i < dimX; i++)}
+    for (int i = 0; i < dimX; i++){
 		for (int j = 0; j < dimY; j++){
 			this->field[i][j] = orig.field[i][j];
 		}
