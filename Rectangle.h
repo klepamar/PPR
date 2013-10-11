@@ -19,6 +19,10 @@ public:
 
     void setShape(Vector2D shape);
     void setPosition(Vector2D position);
+    void setBasePosition(Vector2D basePosition);
+	Vector2D getShape () const;
+	Vector2D getPosition () const;
+	Vector2D getBasePosition () const;
     bool hasShape();
     int getArea();
 
