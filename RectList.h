@@ -43,6 +43,8 @@ public:
     Rectangle* toNext();
 
     void append(Rectangle* rectangle);
+    
+    RectList & operator= (const RectList & orig);
 };
 
 #endif	/* RECTLIST_H */
