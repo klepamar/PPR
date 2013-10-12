@@ -45,8 +45,6 @@ public:
     Rectangle* toNext();
 
     void append(Rectangle* rectangle);
-
-    int getAreaSum();
     int getPerimeterSum();
 };
 
