@@ -10,7 +10,7 @@ FieldStack::FieldStack(const FieldStack& orig) {
 	this->topItem = this->bottomItem = NULL;
 	
 	FieldStackItem origCurrent = orig.bottomItem; // traverse the original stack from the bottom (since we have two pointers available)
-	while (origCurrent) 
+	while (origCurrent)
 	{
 		push (origCurrent->field); // ... and push field values for respective FieldStackItem-s
 		origCurrent = origCurrent->upper; // move upwards towards the top of the stack

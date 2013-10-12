@@ -24,11 +24,12 @@ public:
     Field(Vector2D dimension);
     Field(const Field& orig);
     virtual ~Field();
+    Field& operator=(const Field & orig);
 
     Vector2D getDimension() const; // obtain dimensions of the field
     RectList* getRectangles() const; // obtain a list of rectangles
     int getPerimetrSum() const;
-    
+
     void showField() const;
     void fill(istream &in);
 

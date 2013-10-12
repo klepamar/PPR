@@ -13,42 +13,42 @@ Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()
 Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(this->perSum) {
     //copy all simple elements
     this->rects = orig.rects; //call overloaded RectList operator=
-    
+
     //create a new field
     this->field = new int*[dimX];
     for (int i = 0; i < dimX; i++) {
         field[i] = new int[dimY];
     }
     //copy values stored in the original field
-    for (int i = 0; i < dimX; i++){
-		for (int j = 0; j < dimY; j++){
-			this->field[i][j] = orig.field[i][j];
-		}
-	}
+    for (int i = 0; i < dimX; i++) {
+        for (int j = 0; j < dimY; j++) {
+            this->field[i][j] = orig.field[i][j];
+        }
+    }
 }
 
-Field & Field::operator= (const Field & orig) {
+Field & Field::operator=(const Field & orig) {
     if (this == &orig) // prevent from assignment to itself
         return *this;
-        
+
     this->dimX = orig.dimX; // copy elements passed by value
     this->dimY = orig.dimY;
-    this->perSum = orig.perSum;	
-    
+    this->perSum = orig.perSum;
+
     this->rects = orig.rects; // use RectList overloaded operator= function to create RectList*
-   
+
     this->field = new int*[dimX]; // create int **field
     for (int i = 0; i < dimX; i++) {
         field[i] = new int[dimY];
     }
-    
-    for (int i = 0; i < dimX; i++){ // fill original values into int ** field
-		for (int j = 0; j < dimY; j++){
-			this->field[i][j] = orig.field[i][j];
-		}
-	}
-	
-	return *this; // do not forget to return address of the object
+
+    for (int i = 0; i < dimX; i++) { // fill original values into int ** field
+        for (int j = 0; j < dimY; j++) {
+            this->field[i][j] = orig.field[i][j];
+        }
+    }
+
+    return *this; // do not forget to return address of the object
 }
 
 Field::~Field() {
@@ -133,12 +133,6 @@ void Field::fill(istream &in) {
         }
         getline(in, s); // get rid of new line character
     }
-}
-
-int Field::getPerimetrSum() {
-    throw "Not implemented yet";
-
-    // zeptám se rectListu
 }
 
 bool Field::solveRectShapes(FieldStack &stack) {

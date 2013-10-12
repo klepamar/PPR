@@ -55,19 +55,16 @@ void Rectangle::setBasePosition(Vector2D basePosition) {
     this->basePos = basePosition;
 }
 
-Vector2D Rectangle::getPosition () const
-{
-	return this->pos;
+Vector2D Rectangle::getPosition() const {
+    return this->pos;
 }
 
-Vector2D Rectangle::getBasePosition () const
-{
-	return this->basePos;
+Vector2D Rectangle::getBasePosition() const {
+    return this->basePos;
 }
 
-Vector2D Rectangle::getShape() const
-{
-	return this->shape;
+Vector2D Rectangle::getShape() const {
+    return this->shape;
 }
 
 bool Rectangle::hasShape() {
@@ -90,14 +87,13 @@ vector<Vector2D> Rectangle::getPreparedShapes() {
     return prepShapes;
 }
 
-Rectangle & Rectangle::operator= (const Rectangle & orig)
-{
+Rectangle& Rectangle::operator=(const Rectangle & orig) {
     if (this == &orig) // prevent from assignment to itself
         return *this;
     this->pos = orig.pos; // same as copy constructor...
     this->basePos = orig.basePos;
     this->shape = orig.shape;
     this->area = orig.area;
-    
+
     return *this; // ... but also need to return address of the current object
 }

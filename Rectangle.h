@@ -18,17 +18,21 @@ public:
     Rectangle(int rowPos, int colPos, int volume, int maxHeight, int maxWidth);
     Rectangle(const Rectangle& orig);
     virtual ~Rectangle();
+    Rectangle& operator= (const Rectangle & orig);
 
     Vector2D getShape();
     void setShape(Vector2D shape);
+    bool hasShape();
+    
     Vector2D getBasePosition();
-    Vector2D getPosition();
     void setPosition(Vector2D position);
+    
+    Vector2D getPosition();
+    //void setPosition(Vector2D position);
     void setBasePosition(Vector2D basePosition);
     Vector2D getShape() const;
     Vector2D getPosition() const;
     Vector2D getBasePosition() const;
-    bool hasShape();
     int getArea();
     bool hasPosition();
     int getPerimeter();

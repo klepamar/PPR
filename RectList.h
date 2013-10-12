@@ -13,15 +13,16 @@ class Rectangle; // instead of include to avoid cycle dependency, no need of Rec
  */
 class RectList {
 private:
+
     class RectListItem {
     public:
         RectListItem* next;
         Rectangle* rect;
-        RectListItem(Rectangle* rectangle)
-        {
-		    this->next = NULL;
-			this->rect = rectangle;	// call overloaded function of Rectangle operator=
-		}
+
+        RectListItem(Rectangle* rectangle) {
+            this->next = NULL;
+            this->rect = rectangle; // call overloaded function of Rectangle operator=
+        }
     };
 
     int size; // number of elements within the list
@@ -34,16 +35,17 @@ public:
     RectList();
     RectList(const RectList& orig);
     virtual ~RectList();
+    RectList& operator=(const RectList & orig);
 
-	bool isEmpty () const;
-	bool isAtEnd () const;
+    bool isEmpty() const;
+    bool isAtEnd() const;
     int getSize() const;
     int getAreaSum() const;
     Rectangle* getCurrent() const;
     Rectangle* toNext();
 
     void append(Rectangle* rectangle);
-    
+
     int getAreaSum();
     int getPerimeterSum();
 };

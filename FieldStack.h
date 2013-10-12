@@ -1,6 +1,7 @@
 #ifndef FIELDSTACK_H
 #define	FIELDSTACK_H
 
+#include <cstdlib>
 class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
 
 using namespace std;

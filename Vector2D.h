@@ -12,6 +12,9 @@ using namespace std;
  * Vector (INT_MIN, INT_MIN) for undefined vector; 
  */
 class Vector2D {
+private:
+    int x, y;
+
 public:
     Vector2D();
     Vector2D(int x, int y);
@@ -24,15 +27,11 @@ public:
     void setXY(int x, int y);
     bool isUndefined();
     int getArea();
-    
+
     string toVectorString() const;
     string toPointString() const;
     string toDimensionString() const;
     friend ostream& operator<<(ostream& os, const Vector2D& vector);
-
-
-private:
-    int x, y;
 };
 
 #endif	/* VECTOR2D_H */
