@@ -6,22 +6,19 @@ FieldStack::FieldStack() {
 }
 
 FieldStack::FieldStack(const FieldStack& orig) {
-    /*
     this->size = 0; // start from an empty stack
     this->topItem = this->bottomItem = NULL;
 
-    FieldStackItem origCurrent = orig.bottomItem; // traverse the original stack from the bottom (since we have two pointers available)
+    FieldStackItem *origCurrent = orig.bottomItem; // traverse the original stack from the bottom (since we have two pointers available)
     while (origCurrent) {
         push(origCurrent->field); // ... and push field values for respective FieldStackItem-s
         origCurrent = origCurrent->upper; // move upwards towards the top of the stack
     }
-     */
 }
 
 FieldStack::~FieldStack() {
-    /*
-    FieldStackItem current = this->topItem;
-    FieldStackItem nextCurrent = current;
+    FieldStackItem *current = this->topItem;
+    FieldStackItem *nextCurrent = current;
     while (current) // perform the cleanup while stack is not empty from the top to the bottom
     {
         nextCurrent = current->below;
@@ -29,7 +26,6 @@ FieldStack::~FieldStack() {
         current = nextCurrent;
     }
     this->topItem = this->bottomItem = NULL;
-     */
 }
 
 void FieldStack::push(Field* field) {
@@ -50,7 +46,6 @@ void FieldStack::push(Field* field) {
 }
 
 Field* FieldStack::pop() {
-    /*
     if (isEmpty()) return NULL; // make sure you check what you have received from the stack!
 
     FieldStackItem *retValue = topItem; // FieldStackItem to be returned
@@ -61,13 +56,12 @@ Field* FieldStack::pop() {
         topItem = topItem->below; // change topItem
     } else // popping element from stack with size = 1
     {
-        this->topItem = this->belowItem = NULL :
+        this->topItem = this->bottomItem = NULL;
     }
 
     this->size = this->size - 1;
 
     return retValue->field; // return only the field portion of FieldStackItem
-     */
 }
 
 bool FieldStack::isEmpty() {
