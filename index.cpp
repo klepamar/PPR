@@ -76,11 +76,17 @@ int main(void) {
     Pokud prohledán stavový prostor, ⇒ nemá řešení.
      */
 
-    // předpřipravit abych do DFS šel s tvarem prvního obdélníku
-    field->solveRectShapes(stack);
-
     while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
+            /*
+             * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
+             * Ze stacku můžu dostat dva různé stavy (reprezentovány třídou Field) - (2) aktuální obdélník fieldu má jen tvar nebo (3) aktuální obdélník fieldu má tvar i pozici.
+             * Z vlastního předchozího kroku DFS dostanu stav (1) kdy aktuální obdélník fieldu nemá definován ani tvar ani pozici.
+             * Takže nad stavem provádím postupně požadované operace (najdu tvary, najdu pozice) dokud není obdélník konkrétní a můžu jím obarvit field.
+             * if( (1) ) { řeším tvary }
+             * if( (1+tvar) (2) ) { řeším pozice }
+             * if( (1+tvar+pozice) (2+pozice) (3) - vždy) { obarvuji }
+             */
 
             /*
              *  Ukončijící podmínka DFS, řešení nalezeno.
@@ -96,16 +102,6 @@ int main(void) {
                 }
                 break;
             }
-
-            /*
-             * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
-             * Ze stacku můžu dostat dva různé stavy (reprezentovány třídou Field) - (2) aktuální obdélník fieldu má jen tvar nebo (3) aktuální obdélník fieldu má tvar i pozici.
-             * Z vlastního předchozího kroku DFS dostanu stav (1) kdy aktuální obdélník fieldu nemá definován ani tvar ani pozici.
-             * Takže nad stavem provádím postupně požadované operace (najdu tvary, najdu pozice) dokud není obdélník konkrétní a můžu jím obarvit field.
-             * if( (1) ) { řeším tvary }
-             * if( (1+tvar) (2) ) { řeším pozice }
-             * if( (1+tvar+pozice) (2+pozice) (3) - vždy) { obarvuji }
-             */
 
             /*
              * (1)
@@ -175,18 +171,6 @@ int main(void) {
      * Nešlo by nějak pamatovat si toho míň než celej Field? Asi zbytečný to řešit pokud nebude problém s pamětí
      * 
      *  tabulku vyplňovat číslem vyplňované dlaždice ať vidíme jak to nakonec vypadá to rozdělení
-     */
-
-    /* @TODO
-     * Je potřeba tu nějak vhodně udělat ty podmínky ukončení + řešit to že se to pak volá nad fieldama ze stacku všetně těch kde vlastně už není nic k řešení (ošetřeno podmínkou current == NULL)
-     * domyslet to do konce s tím když solveRectPos řeší poslední rectangle
-     *          ukládám na stack i když vlastně už není co řešit,
-     *          jenom s tím pak potřebuju províst tu posledn9 funkcionalitu - zkontrolovat na nej řešení
-     *          nějak dostat to označování/vybarvování/posunování ven z funkce solveRectPos sem ale zařídit aby se prováděla jakoby na začátku pro ty fieldy ze stacku
-     * 
-     * asi to pujde tak jak to teď je jen je to malinko kostrbatý tím že se posunuju k dalšímu rect uvnitř funkce a pro všechny rect naráz i pro ty který já vlastně v tuhle chvíli neřeším
-     * 
-     * vlastně bych chtěl nějak šíkovně dostat sem funkci Field::markRect(Rectangle*) která vlastně vybarví field, přičte obvod, posune na další rect
      */
 
 }
