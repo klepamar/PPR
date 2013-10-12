@@ -18,9 +18,10 @@ Rectangle::Rectangle(int rowPos, int colPos, int area, int maxHeight, int maxWid
 }
 
 Rectangle::Rectangle(const Rectangle& orig) {
-    throw "Not implemented yet";
-
-    // nevim jak s tím vector<Vector2D> prepShapes jestli se správně nakopíruje ale snad jo
+    this->pos = orig.pos;
+    this->basePos = orig.basePos;
+    this->shape = orig.shape;
+    this->area = orig.area;
 }
 
 Rectangle::~Rectangle() {
@@ -50,6 +51,25 @@ int Rectangle::getArea() {
     return area;
 }
 
+void Rectangle::setBasePosition(Vector2D basePosition) {
+    this->basePos = basePosition;
+}
+
+Vector2D Rectangle::getPosition () const
+{
+	return this->pos;
+}
+
+Vector2D Rectangle::getBasePosition () const
+{
+	return this->basePos;
+}
+
+Vector2D Rectangle::getShape() const
+{
+	return this->shape;
+}
+
 bool Rectangle::hasShape() {
     return !shape.isUndefined();
 }
@@ -70,3 +90,14 @@ vector<Vector2D> Rectangle::getPreparedShapes() {
     return prepShapes;
 }
 
+Rectangle & Rectangle::operator= (const Rectangle & orig)
+{
+    if (this == &orig) // prevent from assignment to itself
+        return *this;
+    this->pos = orig.pos; // same as copy constructor...
+    this->basePos = orig.basePos;
+    this->shape = orig.shape;
+    this->area = orig.area;
+    
+    return *this; // ... but also need to return address of the current object
+}
