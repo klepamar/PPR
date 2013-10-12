@@ -42,7 +42,7 @@ void initField(Field* &field, const char* fileName) {
         throw "Given n (number of non-zero numbers) does not correspond to actual non-zero numbers in given field!";
     }
 
-    if (field->getDimension().getArea() != field->getRectangles()->getAreaSum()) {
+    if (field->getDimension().getX() * field->getDimension().getY()  != field->getRectangles()->getAreaSum()) {
         throw "Given rectangles areas (non-zero numbers) do not cover whole field area!";
     }
 
