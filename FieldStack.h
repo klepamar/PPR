@@ -1,7 +1,11 @@
 #ifndef FIELDSTACK_H
 #define	FIELDSTACK_H
 
-/*
+class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
+
+using namespace std;
+
+/**
  * ==3==
  * ==2==
  * ==1==
@@ -11,10 +15,7 @@
  * z pohladu "3" je 3->below = "2"
  * z pohladu "3" je 3->upper = "NULL"
  * 
- * */
-
-class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
-
+ */
 class FieldStack {
 private:
     
