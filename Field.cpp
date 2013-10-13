@@ -3,21 +3,18 @@
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
     this->rects = new RectList(); // create an empty RectList
-    this->field = new int*[dimX];
-    this->perSum = 0;
-    for (int i = 0; i < dimX; i++) {
-        field[i] = new int[dimY];
+    this->field = new int*[this->dimX];
+    for (int i = 0; i < this->dimX; i++) {
+        field[i] = new int[this->dimY];
     }
 }
 
-Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(this->perSum) {
-    //copy all simple elements
-    this->rects = orig.rects; //call overloaded RectList operator=
-
-    //create a new field
-    this->field = new int*[dimX];
-    for (int i = 0; i < dimX; i++) {
-        field[i] = new int[dimY];
+Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
+    perSum = orig.perSum; // copy simple element
+    this->rects = new RectList(*(orig.rects)); //call copy-constructor
+    this->field = new int*[this->dimX]; //create a new field
+    for (int i = 0; i < this->dimX; i++) {
+        field[i] = new int[this->dimY];
     }
     //copy values stored in the original field
     for (int i = 0; i < dimX; i++) {
@@ -27,6 +24,7 @@ Field::Field(const Field& orig) : dimX(this->dimX), dimY(this->dimY), perSum(thi
     }
 }
 
+/*
 Field & Field::operator=(const Field & orig) {
     if (this == &orig) // prevent from assignment to itself
         return *this;
@@ -50,6 +48,7 @@ Field & Field::operator=(const Field & orig) {
 
     return *this; // do not forget to return address of the object
 }
+ */
 
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {

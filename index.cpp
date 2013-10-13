@@ -41,8 +41,7 @@ void initField(Field* &field, const char* fileName) {
     if (n != field->getRectangles()->getSize()) {
         throw "Given n (number of non-zero numbers) does not correspond to actual non-zero numbers in given field!";
     }
-
-    if (field->getDimension().getX() * field->getDimension().getY()  != field->getRectangles()->getAreaSum()) {
+    if (field->getDimension().getX() * field->getDimension().getY() != field->getRectangles()->getAreaSum()) {
         throw "Given rectangles areas (non-zero numbers) do not cover whole field area!";
     }
 
@@ -53,7 +52,7 @@ int main(void) {
     FieldStack stack; // use an implicit constructor to initialise stack pointers & size
     Field* field;
     Field* bestField = NULL;
-
+    
     cout << "----- TASK -----" << endl;
     try {
         initField(field, fileName);
@@ -80,8 +79,8 @@ int main(void) {
         while (true) { // provedení DFS až do konce
             /*
              * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
-             * Ze stacku můžu dostat dva různé stavy (reprezentovány třídou Field) - (2) aktuální obdélník fieldu má jen tvar nebo (3) aktuální obdélník fieldu má tvar i pozici.
              * Z vlastního předchozího kroku DFS dostanu stav (1) kdy aktuální obdélník fieldu nemá definován ani tvar ani pozici.
+             * Ze stacku můžu dostat dva různé stavy (reprezentovány třídou Field) - (2) aktuální obdélník fieldu má jen tvar nebo (3) aktuální obdélník fieldu má tvar i pozici.
              * Takže nad stavem provádím postupně požadované operace (najdu tvary, najdu pozice) dokud není obdélník konkrétní a můžu jím obarvit field.
              * if( (1) ) { řeším tvary }
              * if( (1+tvar) (2) ) { řeším pozice }
@@ -149,11 +148,11 @@ int main(void) {
     cout << "----- SOLUTION -----" << endl;
     if (bestField != NULL) {
         bestField->showField();
-        delete bestField;
     } else {
-        cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat
+        cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }
 
+    delete bestField;
 
     /* POZNÁMKY
      * 
@@ -172,5 +171,4 @@ int main(void) {
      * 
      *  tabulku vyplňovat číslem vyplňované dlaždice ať vidíme jak to nakonec vypadá to rozdělení
      */
-
 }

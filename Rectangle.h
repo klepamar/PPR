@@ -8,35 +8,28 @@ using namespace std;
 
 class Rectangle {
 private:
-    Vector2D basePos; // position of number that define rectangle - x = row, y = column
+    int const area; // area of rectangle
+    Vector2D const basePos; // position of number that define rectangle - x = row, y = column
     Vector2D pos; // position of top left corner of the rectangle
-    int area; // area of rectangle
     Vector2D shape; // x = height, y = width
     vector<Vector2D> prepShapes; // prepared shapes from constructor
 
 public:
-    Rectangle(int rowPos, int colPos, int volume, int maxHeight, int maxWidth);
-    Rectangle(const Rectangle& orig);
-    virtual ~Rectangle();
+    Rectangle(int basePositionX, int basePositionY, int volume, int maxHeight, int maxWidth);
+    //Rectangle(const Rectangle& orig);
+    //virtual ~Rectangle();
     Rectangle& operator= (const Rectangle & orig);
 
-    Vector2D getShape();
-    void setShape(Vector2D shape);
-    bool hasShape();
-    
-    Vector2D getBasePosition();
-    void setPosition(Vector2D position);
-    
-    Vector2D getPosition();
-    //void setPosition(Vector2D position);
-    void setBasePosition(Vector2D basePosition);
-    Vector2D getShape() const;
-    Vector2D getPosition() const;
     Vector2D getBasePosition() const;
-    int getArea();
-    bool hasPosition();
-    int getPerimeter();
-    vector<Vector2D> getPreparedShapes();
+    Vector2D getPosition() const;
+    bool hasPosition() const;
+    void setPosition(Vector2D position);
+    Vector2D getShape() const;
+    void setShape(Vector2D shape);
+    bool hasShape() const;
+    int getArea() const;
+    int getPerimeter() const;
+    vector<Vector2D> getPreparedShapes() const;
 };
 
 #endif	/* RECTANGLE_H */

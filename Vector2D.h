@@ -18,16 +18,16 @@ private:
 public:
     Vector2D();
     Vector2D(int x, int y);
-    Vector2D(const Vector2D& orig);
-    virtual ~Vector2D();
+    //Vector2D(const Vector2D& orig);
+    //virtual ~Vector2D();
     void setX(int x);
     int getX() const;
     void setY(int y);
     int getY() const;
     void setXY(int x, int y);
-    bool isUndefined();
-    int getArea();
-
+    bool isUndefined() const;
+    int getArea() const;
+    
     string toVectorString() const;
     string toPointString() const;
     string toDimensionString() const;

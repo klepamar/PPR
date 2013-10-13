@@ -15,7 +15,8 @@ using namespace std;
 
 class Field {
 private:
-    int dimX, dimY; // dimensions of the field
+    int const dimX; // dimensions of the field
+    int const dimY; // dimensions of the field
     int** field; //representation of the field
     RectList* rects; // rectangles - list of rectangles
     int perSum; // perimetrSum - sum of perimeters of all rectangles initially set to 0
@@ -24,14 +25,13 @@ public:
     Field(Vector2D dimension);
     Field(const Field& orig);
     virtual ~Field();
-    Field& operator=(const Field & orig);
+    //Field& operator=(const Field & orig);
 
     Vector2D getDimension() const; // obtain dimensions of the field
     RectList* getRectangles() const; // obtain a list of rectangles
     int getPerimetrSum() const;
-
-    void showField() const;
     void fill(istream &in);
+    void showField() const;
 
     // use current rectangle
     bool solveRectShapes(FieldStack &stack);

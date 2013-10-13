@@ -8,8 +8,6 @@ class Rectangle; // instead of include to avoid cycle dependency, no need of Rec
 
 /**
  * single-linked simple list of rectangles
- * @TODO šel by jako array list protože já vím kolik bude těch rect protože mám zadáno n, bude se to pak trošku snadněji kopírovat asi
- * klepo: urcite by to bolo jednoduchsie, ale ked vacsina funkcii uz bola implementovana...
  */
 class RectList {
 private:
@@ -27,7 +25,7 @@ private:
 
     int size; // number of elements within the list
     int areaSum;
-    RectListItem* firstItem; // first element - used when deleting the linked list
+    RectListItem* headItem; // first element - used when deleting the linked list
     RectListItem* tailItem; // last element onto which are further elements attached
     RectListItem* currentItem; // currently evaluated rectangle
 
@@ -35,7 +33,7 @@ public:
     RectList();
     RectList(const RectList& orig);
     virtual ~RectList();
-    RectList& operator=(const RectList & orig);
+    //RectList& operator=(const RectList & orig);
 
     bool isEmpty() const;
     bool isAtEnd() const;
@@ -45,7 +43,7 @@ public:
     Rectangle* toNext();
 
     void append(Rectangle* rectangle);
-    int getPerimeterSum();
+    int getPerimeterSum() const;
 };
 
 #endif	/* RECTLIST_H */

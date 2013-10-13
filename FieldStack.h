@@ -19,19 +19,19 @@ using namespace std;
  */
 class FieldStack {
 private:
-    
+
     class FieldStackItem {
     public:
         FieldStackItem* upper;
         FieldStackItem* below;
         Field* field;
-        FieldStackItem(Field* field)
-        {
-			this->upper = this->below = NULL;
-			this->field = field; // call overloaded Field operator= function
-		}
+
+        FieldStackItem(Field* field) {
+            this->upper = this->below = NULL;
+            this->field = field; // call overloaded Field operator= function
+        }
     };
-    
+
     int size;
     FieldStackItem* topItem;
     FieldStackItem* bottomItem; // mohlo by se hodit potom pro to půlení kdy od zadu vezmu nějakou část (asi ne přímo polovinu protože spodní elementy jsou víc u vrchu stromu takže náročnější na výpočet)
@@ -42,8 +42,8 @@ public:
     virtual ~FieldStack();
 
     void push(Field* field);
-    Field* pop(); // pop included
-    bool isEmpty();
+    Field* pop();
+    bool isEmpty() const;
 };
 
 #endif	/* FIELDSTACK_H */

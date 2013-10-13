@@ -64,7 +64,7 @@ Field* FieldStack::pop() {
     return retValue->field; // return only the field portion of FieldStackItem
 }
 
-bool FieldStack::isEmpty() {
+bool FieldStack::isEmpty() const {
     if (this->size == 0) return true;
     return false;
 }

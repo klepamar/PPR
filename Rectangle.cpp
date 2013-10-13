@@ -1,8 +1,7 @@
 #include "Rectangle.h"
 
-Rectangle::Rectangle(int rowPos, int colPos, int area, int maxHeight, int maxWidth) {
-    this->basePos.setXY(rowPos, colPos);
-    this->area = area;
+Rectangle::Rectangle(int basePosX, int basePositionY, int area, int maxHeight, int maxWidth)
+: area(area), basePos(basePosX, basePositionY) {
 
     /*
      * Prepare possible shapes.
@@ -17,6 +16,7 @@ Rectangle::Rectangle(int rowPos, int colPos, int area, int maxHeight, int maxWid
     }
 }
 
+/* no need
 Rectangle::Rectangle(const Rectangle& orig) {
     this->pos = orig.pos;
     this->basePos = orig.basePos;
@@ -26,68 +26,11 @@ Rectangle::Rectangle(const Rectangle& orig) {
 
 Rectangle::~Rectangle() {
 }
-
-Vector2D Rectangle::getShape() {
-    return shape;
-}
-
-void Rectangle::setShape(Vector2D shape) {
-    this->shape = shape;
-}
-
-Vector2D Rectangle::getBasePosition() {
-    return basePos;
-}
-
-Vector2D Rectangle::getPosition() {
-    return pos;
-}
-
-void Rectangle::setPosition(Vector2D position) {
-    this->pos = position;
-}
-
-int Rectangle::getArea() {
-    return area;
-}
-
-void Rectangle::setBasePosition(Vector2D basePosition) {
-    this->basePos = basePosition;
-}
-
-Vector2D Rectangle::getPosition() const {
-    return this->pos;
-}
-
-Vector2D Rectangle::getBasePosition() const {
-    return this->basePos;
-}
-
-Vector2D Rectangle::getShape() const {
-    return this->shape;
-}
-
-bool Rectangle::hasShape() {
-    return !shape.isUndefined();
-}
-
-bool Rectangle::hasPosition() {
-    return !pos.isUndefined();
-}
-
-int Rectangle::getPerimeter() {
-    if (hasShape() == false) {
-        return -1;
-    } else {
-        return 2 * shape.getX() + 2 * shape.getY();
-    }
-}
-
-vector<Vector2D> Rectangle::getPreparedShapes() {
-    return prepShapes;
-}
+ */
 
 Rectangle& Rectangle::operator=(const Rectangle & orig) {
+    cout << "Rect op=";
+/*
     if (this == &orig) // prevent from assignment to itself
         return *this;
     this->pos = orig.pos; // same as copy constructor...
@@ -96,4 +39,49 @@ Rectangle& Rectangle::operator=(const Rectangle & orig) {
     this->area = orig.area;
 
     return *this; // ... but also need to return address of the current object
+ */ 
+}
+
+Vector2D Rectangle::getBasePosition() const {
+    return basePos;
+}
+
+Vector2D Rectangle::getPosition() const {
+    return pos;
+}
+
+bool Rectangle::hasPosition() const {
+    return !pos.isUndefined();
+}
+
+void Rectangle::setPosition(Vector2D position) {
+    this->pos = position;
+}
+
+Vector2D Rectangle::getShape() const {
+    return shape;
+}
+
+void Rectangle::setShape(Vector2D shape) {
+    this->shape = shape;
+}
+
+bool Rectangle::hasShape() const {
+    return !shape.isUndefined();
+}
+
+int Rectangle::getArea() const {
+    return area;
+}
+
+int Rectangle::getPerimeter() const {
+    if (hasShape() == false) {
+        return -1;
+    } else {
+        return 2 * shape.getX() + 2 * shape.getY();
+    }
+}
+
+vector<Vector2D> Rectangle::getPreparedShapes() const {
+    return prepShapes;
 }

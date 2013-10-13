@@ -10,14 +10,16 @@ Vector2D::Vector2D(int x, int y) {
     this->y = y;
 }
 
+/* no need
 Vector2D::Vector2D(const Vector2D& orig) {
-	this->x = orig.x;
-	this->y = orig.y;
+        this->x = orig.x;
+        this->y = orig.y;
 }
 
 Vector2D::~Vector2D() {
-	// no need to implement, since all parameters in consturctors are passed as values
+        // no need to implement, since all parameters in consturctors are passed as values
 }
+ */
 
 void Vector2D::setX(int x) {
     this->x = x;
@@ -40,7 +42,7 @@ void Vector2D::setXY(int x, int y) {
     this->y = y;
 }
 
-bool Vector2D::isUndefined() {
+bool Vector2D::isUndefined() const {
     if (x == INT_MIN && y < INT_MIN) {
         return true;
     } else {
@@ -48,7 +50,7 @@ bool Vector2D::isUndefined() {
     }
 }
 
-int Vector2D::getArea() {
+int Vector2D::getArea() const {
     return x*y;
 }
 
