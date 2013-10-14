@@ -71,51 +71,6 @@ int Field::getPerimetrSum() const {
     return this->perSum;
 }
 
-/*
- * for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
- */
-void Field::showField() const {
-
-    cout << "dimensions: " << dimX << "x" << dimY << endl;
-    cout << "no rectangles: " << rects->getSize() << endl;
-    // @TODO vypsat součet obvodu, nějak řešit jestli je to celkovej nebo jen částečnej
-
-    // top border
-    cout << "┌";
-    for (int i = 0; i < dimY - 1; i++) {
-        cout << "────┬";
-    }
-    cout << "────┐" << endl;
-
-    for (int i = 0; i < dimX; i++) {
-        cout << "│";
-        for (int j = 0; j < dimY; j++) {
-            if (field[i][j]) {
-                printf(" %2d │", field [i][j]);
-            } else {
-                printf("    │");
-            }
-        }
-        cout << endl;
-
-        // inner border
-        if (i != dimX - 1) {
-            cout << "├";
-            for (int i = 0; i < dimY - 1; i++) {
-                cout << "────┼";
-            }
-            cout << "────┤" << endl;
-        }
-    }
-
-    // bottom border
-    cout << "└";
-    for (int i = 0; i < dimY - 1; i++) {
-        cout << "────┴";
-    }
-    cout << "────┘" << endl;
-}
-
 void Field::fill(istream &in) {
     int currentElement;
     string s, inputElement;
@@ -237,4 +192,53 @@ void Field::colorField() {
 
     // add perimeter
     perSum += rect->getPerimeter();
+}
+
+/*
+ * for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
+ */
+string Field::toString() const {
+    ostringstream ss;
+    
+    ss << "FIELD" << endl;
+    ss << "dimensions: " << Vector2D(dimX, dimY).toDimensionString() << endl;
+    ss << "no rectangles: " << rects->getSize() << endl;
+    ss << "perimeter sum: " << rects->getPerimeterSum() << endl;
+
+    // top border
+    ss << "┌";
+    for (int i = 0; i < dimY - 1; i++) {
+        ss << "────┬";
+    }
+    ss << "────┐" << endl;
+
+    for (int i = 0; i < dimX; i++) {
+        ss << "│";
+        for (int j = 0; j < dimY; j++) {
+            if (field[i][j]) {
+                ss << " " << setw(2) << field [i][j] << " │";
+            } else {
+                ss << "    │";
+            }
+        }
+        ss << endl;
+
+        // inner border
+        if (i != dimX - 1) {
+            ss << "├";
+            for (int i = 0; i < dimY - 1; i++) {
+                ss << "────┼";
+            }
+            ss << "────┤" << endl;
+        }
+    }
+
+    // bottom border
+    ss << "└";
+    for (int i = 0; i < dimY - 1; i++) {
+        ss << "────┴";
+    }
+    ss << "────┘" << endl;
+
+    return ss.str();
 }

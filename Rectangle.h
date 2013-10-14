@@ -30,6 +30,8 @@ public:
     int getArea() const;
     int getPerimeter() const;
     vector<Vector2D> getPreparedShapes() const;
+    
+    string toString() const;
 };
 
 #endif	/* RECTANGLE_H */

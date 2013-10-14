@@ -46,13 +46,12 @@ RectList & RectList::operator=(const RectList & orig) {
  */
 
 RectList::~RectList() {
-    RectListItem *temp = headItem;
-    RectListItem *nextTemp = headItem;
-    while (temp) // use the pointer to the first element in the list
+    RectListItem *temp;
+    while (currentItem) // use the pointer to the first element in the list
     {
-        nextTemp = temp->next;
+        temp = currentItem;
+        currentItem = currentItem->next;
         delete temp;
-        temp = nextTemp;
     }
     this->tailItem = this->currentItem = this->headItem = NULL;
 }
@@ -76,6 +75,9 @@ int RectList::getAreaSum() const {
 }
 
 Rectangle* RectList::getCurrent() const {
+    if (currentItem == NULL) {
+        return NULL;
+    }
     return this->currentItem->rect;
 }
 
@@ -93,10 +95,17 @@ void RectList::append(Rectangle* rect) {
     size++;
 }
 
-Rectangle* RectList::toNext() {
-    if (isEmpty() || isAtEnd()) {cout << "rectList::toNext() returning null\n"; return NULL;} // we have already visited all items in the list or list is empty
-    currentItem = currentItem->next;
-    return currentItem->rect;
+void RectList::toNext() {
+    if (currentItem == NULL) { // we have already visited all items in the list or list is empty
+        return;
+    }
+    currentItem = currentItem->next; // move to next
+
+    if (currentItem != NULL) { //
+        cout << "Moving to the next rectangle with base pos: " << currentItem->rect->getBasePosition().toPointString() << endl;
+    } else {
+        cout << "Moving to the next rectangle with base pos: null" << endl;
+    }
 }
 
 /**
@@ -112,8 +121,35 @@ int RectList::getPerimeterSum() const {
     }
 
     if (!isAtEnd()) {
-        sum = (-1) * sum; // it is not 
+        sum = (-1) * sum; // it is only partial sum 
     }
     return sum;
+}
+
+string RectList::toString() const {
+    ostringstream ss;
+    
+    ss << "RECTLIST" << endl;
+    RectListItem* rectItem = headItem;
+    while (rectItem != NULL) {
+        if (rectItem == headItem) {
+            ss << "H";
+        } else {
+            ss << " ";
+        }
+        if (rectItem == currentItem) {
+            ss << "C";
+        } else {
+            ss << " ";
+        }
+        if (rectItem == tailItem) {
+            ss << "T";
+        } else {
+            ss << " ";
+        }
+        ss << " " << rectItem->rect->toString() << endl;
+        rectItem = rectItem->next;
+    }
+    return ss.str();
 }
 

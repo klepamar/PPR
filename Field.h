@@ -4,7 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
-#include <algorithm> 
+#include <algorithm>
+#include <iomanip>
 
 #include "Vector2D.h"
 #include "Rectangle.h"
@@ -31,7 +32,6 @@ public:
     RectList* getRectangles() const; // obtain a list of rectangles
     int getPerimetrSum() const;
     void fill(istream &in);
-    void showField() const;
 
     // use current rectangle
     bool solveRectShapes(FieldStack &stack);
@@ -39,6 +39,8 @@ public:
     bool solveRectPositions(FieldStack &stack);
     vector<Vector2D> findRectPositions();
     void colorField();
+
+    string toString() const;
 };
 
 #endif	/* FIELD_H */

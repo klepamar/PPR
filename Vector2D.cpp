@@ -43,7 +43,7 @@ void Vector2D::setXY(int x, int y) {
 }
 
 bool Vector2D::isUndefined() const {
-    if (x == INT_MIN && y < INT_MIN) {
+    if (x == INT_MIN && y == INT_MIN) {
         return true;
     } else {
         return false;
@@ -56,23 +56,37 @@ int Vector2D::getArea() const {
 
 string Vector2D::toVectorString() const {
     ostringstream ss;
-    ss << "(" << x << ", " << y << ")";
+    if (isUndefined()) {
+        ss << "(undef)";
+    } else {
+        ss << "(" << x << ", " << y << ")";
+    }
     return ss.str();
 }
 
 string Vector2D::toPointString() const {
     ostringstream ss;
-    ss << "[" << x << ", " << y << "]";
+    if (isUndefined()) {
+        ss << "[undef]";
+    } else {
+        ss << "[" << x << ", " << y << "]";
+    }
     return ss.str();
 }
 
 string Vector2D::toDimensionString() const {
     ostringstream ss;
-    ss << x << "x" << y;
+    if (isUndefined()) {
+        ss << "undef";
+    } else {
+        ss << x << "x" << y;
+    }
     return ss.str();
 }
 
+/*
 ostream& operator<<(ostream& os, const Vector2D& vector) {
     os << vector.toVectorString();
     return os;
 }
+ */

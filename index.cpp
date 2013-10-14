@@ -52,16 +52,18 @@ int main(void) {
     FieldStack stack; // use an implicit constructor to initialise stack pointers & size
     Field* field;
     Field* bestField = NULL;
-    
-    cout << "----- TASK -----" << endl;
+
     try {
         initField(field, fileName);
-        field->showField();
+        cout << "----- TASK -----" << endl;
+        cout << field->toString();
+        cout << field->getRectangles()->toString();
     } catch (const char* ex) {
         cout << "Exception: " << ex << endl;
         return (EXIT_FAILURE);
     }
 
+    
     /* ALGORITMUS Z EDUXU 
      * 
     pro všechna nenulová čísla v mřížce, opakuj
@@ -107,7 +109,7 @@ int main(void) {
              * (1)
              */
             if (field->getRectangles()->getCurrent()->hasShape() == false) {
-                cout << "solving RectShapes for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
+                cout << "solving RectShapes for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition().toPointString() << endl;
                 /*
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
@@ -119,7 +121,7 @@ int main(void) {
              * (1+tvar) (2)
              */
             if (field->getRectangles()->getCurrent()->hasPosition() == false) {
-				cout << "solving RectPositions for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
+                cout << "solving RectPositions for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition().toPointString() << endl;
                 /*
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
@@ -135,7 +137,6 @@ int main(void) {
              */
             field->colorField();
             field->getRectangles()->toNext();
-            cout << "Moving to the next rectangle with base pos: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
         }
 
         /*
@@ -151,7 +152,8 @@ int main(void) {
 
     cout << "----- SOLUTION -----" << endl;
     if (bestField != NULL) {
-        bestField->showField();
+        cout << field->toString();
+        cout << bestField->getRectangles()->toString();
     } else {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }

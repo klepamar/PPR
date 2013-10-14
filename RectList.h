@@ -40,10 +40,12 @@ public:
     int getSize() const;
     int getAreaSum() const;
     Rectangle* getCurrent() const;
-    Rectangle* toNext();
+    void toNext();
 
     void append(Rectangle* rectangle);
     int getPerimeterSum() const;
+    
+    string toString() const;
 };
 
 #endif	/* RECTLIST_H */
