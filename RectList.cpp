@@ -46,12 +46,13 @@ RectList & RectList::operator=(const RectList & orig) {
  */
 
 RectList::~RectList() {
-    RectListItem *temp;
-    while (currentItem) // use the pointer to the first element in the list
+    RectListItem *temp = headItem;
+    RectListItem *nextTemp = headItem;
+    while (temp) // use the pointer to the first element in the list
     {
-        temp = currentItem;
-        currentItem = currentItem->next;
+        nextTemp = temp->next;
         delete temp;
+        temp = nextTemp;
     }
     this->tailItem = this->currentItem = this->headItem = NULL;
 }
