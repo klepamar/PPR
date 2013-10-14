@@ -86,13 +86,14 @@ void RectList::append(Rectangle* rect) {
     } else {
         tailItem->next = newItem; // append the newly created item at the end of the list
     }
+    cout << "Appending new item with area: " << rect->getArea() << endl;
     tailItem = newItem;
     areaSum += rect->getArea();
     size++;
 }
 
 Rectangle* RectList::toNext() {
-    if (isEmpty() || isAtEnd()) return NULL; // we have already visited all items in the list or list is empty
+    if (isEmpty() || isAtEnd()) {cout << "rectList::toNext() returning null\n"; return NULL;} // we have already visited all items in the list or list is empty
     currentItem = currentItem->next;
     return currentItem->rect;
 }

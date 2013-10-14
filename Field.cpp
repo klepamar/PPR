@@ -139,10 +139,12 @@ bool Field::solveRectShapes(FieldStack &stack) {
     vector<Vector2D> shapes;
 
     shapes = this->findRectShapes();
+    cout << "number of possible shapes: " << shapes.size() << endl;
 
     rects->getCurrent()->setShape(shapes[0]); // use first shape for for rectangle from this field
     for (int i = 1; i < shapes.size(); i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
+        cout << "creating new field within solveRectShapes\n";
         newField->getRectangles()->getCurrent()->setShape(shapes[i]);
         stack.push(newField);
     }
@@ -210,6 +212,7 @@ vector<Vector2D> Field::findRectPositions() {
             }
             if (flag == true) { // it is allowable position
                 poss.push_back(Vector2D(i, j));
+                cout << "Possible positions: " << i << " " << j << endl;
             }
             flag = true; // reset flag
 

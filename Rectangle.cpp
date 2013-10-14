@@ -11,6 +11,7 @@ Rectangle::Rectangle(int basePosX, int basePositionY, int area, int maxHeight, i
         for (int y = 1; y <= area && y < maxWidth; y++) {
             if (x * y == area) {
                 this->prepShapes.push_back(Vector2D(x, y));
+                cout << "Possible shapes: " << x << " " << y << endl;
             }
         }
     }

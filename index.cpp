@@ -75,7 +75,7 @@ int main(void) {
     Pokud prohledán stavový prostor, ⇒ nemá řešení.
      */
 
-    while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
+    while (true) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
             /*
              * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
@@ -91,6 +91,7 @@ int main(void) {
              *  Ukončijící podmínka DFS, řešení nalezeno.
              */
             if (field->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
+                cout << "currentRect = NULL\n";
                 /*
                  * Zaznamenání nejlepšího řešení.
                  */
@@ -106,6 +107,7 @@ int main(void) {
              * (1)
              */
             if (field->getRectangles()->getCurrent()->hasShape() == false) {
+                cout << "solving RectShapes for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
                 /*
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
@@ -117,6 +119,7 @@ int main(void) {
              * (1+tvar) (2)
              */
             if (field->getRectangles()->getCurrent()->hasPosition() == false) {
+				cout << "solving RectPositions for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
                 /*
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
@@ -132,6 +135,7 @@ int main(void) {
              */
             field->colorField();
             field->getRectangles()->toNext();
+            cout << "Moving to the next rectangle with base pos: " << field->getRectangles()->getCurrent()->getBasePosition() << endl;
         }
 
         /*
