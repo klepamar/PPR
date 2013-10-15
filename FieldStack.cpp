@@ -72,3 +72,14 @@ bool FieldStack::isEmpty() const {
     if (this->size == 0) return true;
     return false;
 }
+
+std::string FieldStack::toString() const {
+    FieldStackItem *tmp = this->topItem;
+    cout << "FIELDSTACK" << endl;
+    for (int i = 0; tmp != NULL; i++) {
+        cout << "---------- " << size - 1 << " ----------" << endl;
+        cout << tmp->field->toString();
+        cout << "---------- " << size - 1 << " ----------" << endl;
+        tmp = tmp->below;
+    }
+}

@@ -42,6 +42,8 @@ public:
     void push(Field* field);
     Field* pop();
     bool isEmpty() const;
+    
+    std::string toString() const;
 };
 
 #endif	/* FIELDSTACK_H */
