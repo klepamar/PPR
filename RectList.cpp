@@ -27,6 +27,9 @@ RectList::RectList(const RectList& orig) {
     while (temp != NULL) // ... and continue by appending all items from the original list
     {
         append(new Rectangle(*(temp->rect)));
+        if (temp == orig.currentItem) { // this->currentItem have to point to copy of orig->currentItem;
+            this->currentItem = this->tailItem;
+        }
         temp = temp->next;
     }
     // after this, all pointers and number of rectangles within the list/overall area should be updated automatically (=handled by "append" procedure)
