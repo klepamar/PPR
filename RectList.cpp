@@ -42,6 +42,7 @@ RectList::~RectList() {
     {
         nextTemp = temp->next;
         delete temp;
+        temp = NULL;
         temp = nextTemp;
     }
     this->tailItem = this->currentItem = this->headItem = NULL;

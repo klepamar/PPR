@@ -35,10 +35,13 @@ Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {
         delete[] field[i]; // delete array of int
+        field[i] = NULL;
     }
     delete[] field; // delete array of int*
+    field = NULL;
 
     delete rects; // call destructor of RectList
+    rects = NULL;
 }
 
 Vector2D Field::getDimension() const {
