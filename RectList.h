@@ -28,6 +28,7 @@ private:
     RectListItem* headItem; // first element - used when deleting the linked list
     RectListItem* tailItem; // last element onto which are further elements attached
     RectListItem* currentItem; // currently evaluated rectangle
+    int currentItemId;
 
 public:
     RectList();
@@ -40,6 +41,7 @@ public:
     int getSize() const;
     int getAreaSum() const;
     Rectangle* getCurrent() const;
+    int getCurrentId() const;
     void toNext();
 
     void append(Rectangle* rectangle);

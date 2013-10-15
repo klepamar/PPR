@@ -57,7 +57,6 @@ int main(void) {
         initField(field, fileName);
         cout << "----- TASK -----" << endl;
         cout << field->toString();
-        cout << field->getRectangles()->toString();
     } catch (const char* ex) {
         cout << "Exception: " << ex << endl;
         return (EXIT_FAILURE);
@@ -154,8 +153,7 @@ int main(void) {
 
     cout << "----- SOLUTION -----" << endl;
     if (bestField != NULL) {
-        cout << field->toString();
-        cout << bestField->getRectangles()->toString();
+        cout << bestField->toString();
     } else {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }

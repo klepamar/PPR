@@ -51,12 +51,14 @@ Field & Field::operator=(const Field & orig) {
  */
 
 Field::~Field() {
+    /*
     for (int i = 0; i < dimX; i++) {
-        delete field[dimX];
+        delete[] field[dimX];
     }
-    delete field;
+    delete[] field;
 
     delete rects;
+     */
 }
 
 Vector2D Field::getDimension() const {
@@ -159,7 +161,7 @@ vector<Vector2D> Field::findRectPositions() {
             for (int k = 0; k < shapeX; k++) {
                 for (int l = 0; l < shapeY; l++) {
                     // check
-                    if (field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
+                    if (field[i + k][j + l] != 0 || i + k >= dimX || i + k >= dimY) { // cover non-zero cell => it is not allowable position
                         flag = false;
                         k = shapeX; // break outer for (where k is control variable)
                     }
@@ -180,11 +182,11 @@ vector<Vector2D> Field::findRectPositions() {
 
 void Field::colorField() {
     Rectangle* rect = rects->getCurrent();
-    static int color = 1; // @TODO nebude fungovat pro předávání mezi procesorama
+    int color = rects->getCurrentId();
 
     // color field
-    for (int i = rect->getPosition().getX(); i < rect->getShape().getX(); i++) {
-        for (int j = rect->getPosition().getY(); j < rect->getShape().getY(); j++) {
+    for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
+        for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
             field[i][j] = color;
         }
     }
@@ -192,6 +194,8 @@ void Field::colorField() {
 
     // add perimeter
     perSum += rect->getPerimeter();
+
+    cout << this->toString();
 }
 
 /*
@@ -199,7 +203,7 @@ void Field::colorField() {
  */
 string Field::toString() const {
     ostringstream ss;
-    
+
     ss << "FIELD" << endl;
     ss << "dimensions: " << Vector2D(dimX, dimY).toDimensionString() << endl;
     ss << "no rectangles: " << rects->getSize() << endl;
@@ -240,5 +244,7 @@ string Field::toString() const {
     }
     ss << "────┘" << endl;
 
+    ss << rects->toString(); // Vypisovat i RectList
+    
     return ss.str();
 }

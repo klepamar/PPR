@@ -6,6 +6,7 @@ RectList::RectList() {
     this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
+    this->currentItemId = 0;
     this->headItem = NULL;
 }
 
@@ -14,12 +15,13 @@ RectList::RectList(const RectList& orig) {
     this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
+    this->currentItemId = 0;
     this->headItem = NULL; // start by creating an empty list
 
     RectListItem *temp = orig.headItem;
-    while (temp) // ... and continue by appending all items from the original list
+    while (temp != NULL) // ... and continue by appending all items from the original list
     {
-        append(temp->rect);
+        append(new Rectangle(*(temp->rect)));
         temp = temp->next;
     }
     // after this, all pointers and number of rectangles within the list/overall area should be updated automatically (=handled by "append" procedure)
@@ -82,11 +84,16 @@ Rectangle* RectList::getCurrent() const {
     return this->currentItem->rect;
 }
 
+int RectList::getCurrentId() const {
+    return currentItemId;
+}
+
 void RectList::append(Rectangle* rect) {
     RectListItem* newItem = new RectListItem(rect); // create a new item
     if (isEmpty()) {
         headItem = newItem; // remember firstItem so that destructor can properly delete all elements of the list
         currentItem = newItem; // current & tail items will correspond to the only item in the list
+        currentItemId = 1;
     } else {
         tailItem->next = newItem; // append the newly created item at the end of the list
     }
@@ -101,6 +108,7 @@ void RectList::toNext() {
         return;
     }
     currentItem = currentItem->next; // move to next
+    currentItemId++;
 
     if (currentItem != NULL) { //
         cout << "Moving to the next rectangle with base pos: " << currentItem->rect->getBasePosition().toPointString() << endl;
@@ -129,7 +137,7 @@ int RectList::getPerimeterSum() const {
 
 string RectList::toString() const {
     ostringstream ss;
-    
+
     ss << "RECTLIST" << endl;
     RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
