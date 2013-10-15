@@ -64,6 +64,8 @@ int main(void) {
     }
 
     
+    /* test */
+    
     /* ALGORITMUS Z EDUXU 
      * 
     pro všechna nenulová čísla v mřížce, opakuj
