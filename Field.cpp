@@ -34,7 +34,7 @@ Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
 
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {
-        delete[] field[dimX]; // delete array of int
+        delete[] field[i]; // delete array of int
     }
     delete[] field; // delete array of int*
 
