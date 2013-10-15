@@ -184,7 +184,7 @@ vector<Vector2D> Field::findRectPositions() {
 }
 
 void Field::colorField() {
-    cout << "ColoringField" << endl;
+    cout << "ColoringField:" << endl;
     Rectangle* rect = rects->getCurrent();
     int color = rects->getCurrentId();
 

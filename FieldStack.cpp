@@ -50,6 +50,7 @@ void FieldStack::push(Field* field) {
 }
 
 Field* FieldStack::pop() {
+    cout << "Popping stack:" << endl;
     if (isEmpty()) return NULL; // make sure you check what you have received from the stack!
 
     FieldStackItem *retValue = topItem; // FieldStackItem to be returned
@@ -65,6 +66,7 @@ Field* FieldStack::pop() {
 
     this->size = this->size - 1;
 
+    cout << retValue->field->toString();
     return retValue->field; // return only the field portion of FieldStackItem
 }
 

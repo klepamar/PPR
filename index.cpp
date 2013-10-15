@@ -53,7 +53,7 @@ int main(void) {
     Field* field;
     Field* bestField = NULL;
 
-    cout << "<TASK>" << endl;
+    cout << "---------- TASK ----------" << endl;
     try {
         initField(field, fileName);
         cout << field->toString();
@@ -61,7 +61,6 @@ int main(void) {
         cout << "Exception: " << ex << endl;
         return (EXIT_FAILURE);
     }
-    cout << "</TASK>" << endl;
 
     /* test */
 
@@ -150,13 +149,12 @@ int main(void) {
         }
     }
 
-    cout << "<SOLUTION>" << endl;
+    cout << "---------- SOLUTION ----------" << endl;
     if (bestField != NULL) {
         cout << bestField->toString();
     } else {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }
-    cout << "</SOLUTION>" << endl;
 
     delete bestField;
 
