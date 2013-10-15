@@ -70,8 +70,10 @@ vector<Vector2D> Rectangle::getPreparedShapes() const {
 string Rectangle::toString() const {
     ostringstream ss;
 
-    ss << "basePos: " << getBasePosition().toPointString() << "; " <<
-            "area: " << getArea() << "; " <<
+    ss << "area: " << getArea() << "; " <<
+            "basePos: " << getBasePosition().toPointString() << "; " <<
+            "pos: " << getPosition().toPointString() << "; " <<
+            "shape: " << getShape().toVectorString() << "; " <<
             "prepShapes: ";
     for (int i = 0; i < getPreparedShapes().size(); i++) {
         ss << getPreparedShapes()[i].toVectorString();
@@ -81,8 +83,6 @@ string Rectangle::toString() const {
             ss << "; ";
         }
     }
-    ss << "pos: " << getPosition().toPointString() << "; " <<
-            "shape: " << getShape().toVectorString();
 
     return ss.str();
 }
