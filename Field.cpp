@@ -126,22 +126,26 @@ vector<Vector2D> Field::findRectPositions() {
     int shapeY = rect->getShape().getY();
     bool flag = true;
 
-    // find top, bottom, left, right "blockers"
-    int top = max(baseX - shapeX + 1, 0);
-    int bottom = min(baseX + shapeX - 1, dimX - shapeX);
-    int left = max(baseY - shapeY + 1, 0);
-    int right = min(baseY + shapeY - 1, dimY - shapeY);
+    // find top, bottom, left, right "blockers" of a top left corner of the shaped rectangle
+    int top = max(baseX - shapeX + 1, 0); // levý horní roh může být nejdříve na pozici [0, 0] a zároveň chci aby obsahoval base pozici
+    int left = max(baseY - shapeY + 1, 0); // levý horní roh může být nejdříve na pozici [0, 0] a zároveň chci aby obsahoval base pozici
+    //                         kolik presahuje za dimenzi z base
+    int bottom = baseX - max((baseX + shapeX - 1) - (dimX - 1), 0); // levý horní roh může být nejdál tam kde se "zrzadlí" (odečtu přesahy) jeho pravy spodní roh pokud je polozen na base
+    int right = baseY - max((baseY + shapeY - 1) - (dimY - 1), 0); // levý horní roh může být nejdál tam kde se "zrzadlí" (odečtu přesahy) jeho pravy spodní roh pokud je polozen na base
+    
+    cout << "top left: " << Vector2D(top, left).toPointString() << endl;
+    cout << "bottom right: " << Vector2D(bottom, right).toPointString() << endl;
 
     int tmp = field[baseX][baseY];
     field[baseX][baseY] = 0; // easier checking
     for (int i = top; i <= bottom; i++) {
-        for (int j = left; j <= right; j++) {
+        for (int j = left; j <= right; j++) { // i, j - jsou všechny možné pozice horního levého rohu takové aby obdélník stále překríval svojí basePos a zároveň aby nepřesahoval z obdélníku ven
 
             // i,j - every possible position (of top left corner of this (shaped) rectangle
             for (int k = 0; k < shapeX; k++) {
-                for (int l = 0; l < shapeY; l++) {
+                for (int l = 0; l < shapeY; l++) { // k, l - pozice jednoho políčka obdélníku s danou pozicí (i, j) ktere je nutné testovat zda neprekryvají nenulové pole
                     // check
-                    if (i + k >= dimX || i + k >= dimY || field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
+                    if (/*i + k >= dimX || i + k >= dimY || - neni nutné díky bottom a right zarazce */ field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
                         flag = false;
                         k = shapeX; // break outer for (where k is control variable)
                     }
@@ -225,6 +229,6 @@ string Field::toString() const {
     ss << "────┘" << endl;
 
     ss << rects->toString(); // Vypisovat i RectList
-    
+
     return ss.str();
 }

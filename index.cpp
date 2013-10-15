@@ -110,7 +110,7 @@ int main(void) {
              * (1)
              */
             if (field->getRectangles()->getCurrent()->hasShape() == false) {
-                cout << "solving RectShapes for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition().toPointString() << endl;
+                cout << "solving RectShapes for rectangle: " << field->getRectangles()->getCurrent()->toString() << endl;
                 /*
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
@@ -122,7 +122,7 @@ int main(void) {
              * (1+tvar) (2)
              */
             if (field->getRectangles()->getCurrent()->hasPosition() == false) {
-                cout << "solving RectPositions for rectangle at: " << field->getRectangles()->getCurrent()->getBasePosition().toPointString() << endl;
+                cout << "solving RectPositions for rectangle: " << field->getRectangles()->getCurrent()->toString() << endl;
                 /*
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
