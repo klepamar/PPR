@@ -20,7 +20,7 @@ RectList::RectList(const RectList& orig) {
     this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
-    this->currentItemId = 0;
+    this->currentItemId = orig.currentItemId;
     this->headItem = NULL; // start by creating an empty list
 
     RectListItem *temp = orig.headItem;
