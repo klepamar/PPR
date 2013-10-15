@@ -27,26 +27,6 @@ RectList::RectList(const RectList& orig) {
     // after this, all pointers and number of rectangles within the list/overall area should be updated automatically (=handled by "append" procedure)
 }
 
-/*
-RectList & RectList::operator=(const RectList & orig) {
-    if (this == &orig) // prevent from assignment to itself
-        return *this;
-
-    this->size = 0;
-    this->areaSum = 0;
-    this->tailItem = this->currentItem = this->headItem = NULL; // empty list
-
-    RectListItem *temp = orig.headItem;
-    while (temp) // append elements from the original list into the new list
-    {
-        append(temp->rect);
-        temp = temp->next;
-    }
-
-    return *this; // do not forget to return the address of the current object
-}
- */
-
 RectList::~RectList() {
     RectListItem *temp = headItem;
     RectListItem *nextTemp = headItem;

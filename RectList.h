@@ -34,7 +34,6 @@ public:
     RectList();
     RectList(const RectList& orig);
     virtual ~RectList();
-    //RectList& operator=(const RectList & orig);
 
     bool isEmpty() const;
     bool isAtEnd() const;
