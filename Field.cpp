@@ -148,9 +148,9 @@ vector<Vector2D> Field::findRectPositions() {
 
     // find top, bottom, left, right "blockers"
     int top = max(baseX - shapeX + 1, 0);
-    int bottom = min(baseX + shapeX - 1, dimX - 1);
+    int bottom = min(baseX + shapeX - 1, dimX - shapeX);
     int left = max(baseY - shapeY + 1, 0);
-    int right = min(baseY + shapeY - 1, dimY - 1);
+    int right = min(baseY + shapeY - 1, dimY - shapeY);
 
     int tmp = field[baseX][baseY];
     field[baseX][baseY] = 0; // easier checking
@@ -161,7 +161,7 @@ vector<Vector2D> Field::findRectPositions() {
             for (int k = 0; k < shapeX; k++) {
                 for (int l = 0; l < shapeY; l++) {
                     // check
-                    if (field[i + k][j + l] != 0 || i + k >= dimX || i + k >= dimY) { // cover non-zero cell => it is not allowable position
+                    if (i + k >= dimX || i + k >= dimY || field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
                         flag = false;
                         k = shapeX; // break outer for (where k is control variable)
                     }
