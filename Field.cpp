@@ -1,4 +1,12 @@
 #include "Field.h"
+#include "FieldStack.h"
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <stdlib.h>
+
+using namespace std;
 
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
@@ -26,11 +34,11 @@ Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
 
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {
-        delete[] field[dimX];
+        delete[] field[dimX]; // delete array of int
     }
-    delete[] field;
+    delete[] field; // delete array of int*
 
-    delete rects;
+    delete rects; // call destructor of RectList
 }
 
 Vector2D Field::getDimension() const {

@@ -1,4 +1,10 @@
 #include "Vector2D.h"
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <climits>
+
+using namespace std;
 
 Vector2D::Vector2D() {
     this->x = INT_MIN;

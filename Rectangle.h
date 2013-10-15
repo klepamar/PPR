@@ -2,9 +2,8 @@
 #define	RECTANGLE_H
 
 #include "Vector2D.h"
+#include <string>
 #include <vector>
-
-using namespace std;
 
 class Rectangle {
 private:
@@ -12,7 +11,7 @@ private:
     Vector2D const basePos; // position of number that define rectangle - x = row, y = column
     Vector2D pos; // position of top left corner of the rectangle
     Vector2D shape; // x = height, y = width
-    vector<Vector2D> prepShapes; // prepared shapes from constructor
+    std::vector<Vector2D> prepShapes; // prepared shapes from constructor
 
 public:
     Rectangle(int basePositionX, int basePositionY, int volume, int maxHeight, int maxWidth);
@@ -26,9 +25,9 @@ public:
     bool hasShape() const;
     int getArea() const;
     int getPerimeter() const;
-    vector<Vector2D> getPreparedShapes() const;
+    std::vector<Vector2D> getPreparedShapes() const;
     
-    string toString() const;
+    std::string toString() const;
 };
 
 #endif	/* RECTANGLE_H */

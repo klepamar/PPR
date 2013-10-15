@@ -1,4 +1,11 @@
 #include "Rectangle.h"
+#include "Vector2D.h"
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+
+using namespace std;
 
 Rectangle::Rectangle(int basePosX, int basePosY, int area, int maxHeight, int maxWidth)
 : basePos(basePosX, basePosY), area(area) {

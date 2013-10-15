@@ -1,18 +1,12 @@
 #ifndef FIELD_H
 #define	FIELD_H
 
-#include <iostream>
-#include <fstream>
-#include <stdlib.h>
-#include <algorithm>
-#include <iomanip>
-
 #include "Vector2D.h"
-#include "Rectangle.h"
 #include "RectList.h"
-#include "FieldStack.h"
-
-using namespace std;
+class FieldStack; // avoid circular dependency
+#include <iostream>
+#include <string>
+#include <vector>
 
 class Field {
 private:
@@ -30,16 +24,16 @@ public:
     Vector2D getDimension() const; // obtain dimensions of the field
     RectList* getRectangles() const; // obtain a list of rectangles
     int getPerimetrSum() const;
-    void fill(istream &in);
+    void fill(std::istream &in);
 
     // use current rectangle
-    bool solveRectShapes(FieldStack &stack);
-    vector<Vector2D> findRectShapes();
+    bool solveRectShapes(FieldStack  &stack);
+    std::vector<Vector2D> findRectShapes();
     bool solveRectPositions(FieldStack &stack);
-    vector<Vector2D> findRectPositions();
+    std::vector<Vector2D> findRectPositions();
     void colorField();
 
-    string toString() const;
+    std::string toString() const;
 };
 
 #endif	/* FIELD_H */

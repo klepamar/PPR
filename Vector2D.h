@@ -1,11 +1,7 @@
 #ifndef VECTOR2D_H
 #define	VECTOR2D_H
 
-#include <iostream>
-#include <climits>
-#include <sstream>
-
-using namespace std;
+#include <string>
 
 /**
  * Two-dimensional vector.
@@ -26,9 +22,9 @@ public:
     bool isUndefined() const;
     int getArea() const;
     
-    string toVectorString() const;
-    string toPointString() const;
-    string toDimensionString() const;
+    std::string toVectorString() const;
+    std::string toPointString() const;
+    std::string toDimensionString() const;
 };
 
 #endif	/* VECTOR2D_H */

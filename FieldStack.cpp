@@ -1,4 +1,7 @@
 #include "FieldStack.h"
+#include "Field.h"
+
+using namespace std;
 
 FieldStack::FieldStack() {
     this->size = 0;

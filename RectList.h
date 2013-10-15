@@ -1,10 +1,9 @@
 #ifndef RECTLIST_H
 #define	RECTLIST_H
 
-#include <stdio.h>
-
 #include "Rectangle.h"
-class Rectangle; // instead of include to avoid cycle dependency, no need of Rectangle functions
+#include <cstdlib> 
+#include <string>
 
 /**
  * single-linked simple list of rectangles
@@ -46,7 +45,7 @@ public:
     void append(Rectangle* rectangle);
     int getPerimeterSum() const;
     
-    string toString() const;
+    std::string toString() const;
 };
 
 #endif	/* RECTLIST_H */

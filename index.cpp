@@ -1,6 +1,6 @@
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
 
 #include "Field.h"
 #include "FieldStack.h"

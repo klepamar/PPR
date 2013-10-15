@@ -1,5 +1,10 @@
 #include "RectList.h"
 #include "Rectangle.h"
+#include <cstdlib> 
+#include <iostream>
+#include <sstream>
+
+using namespace std;
 
 RectList::RectList() {
     this->size = 0;

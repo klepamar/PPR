@@ -1,10 +1,8 @@
 #ifndef FIELDSTACK_H
 #define	FIELDSTACK_H
 
+#include "Field.h" 
 #include <cstdlib>
-class Field; // instead of include to avoid cycle dependency, no need of Rectangle functions
-
-using namespace std;
 
 /**
  * ==3==
@@ -28,7 +26,7 @@ private:
 
         FieldStackItem(Field* field) {
             this->upper = this->below = NULL;
-            this->field = field; // call overloaded Field operator= function
+            this->field = field;
         }
     };
 
