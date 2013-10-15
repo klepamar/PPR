@@ -96,10 +96,9 @@ vector<Vector2D> Field::findRectShapes() {
         cout << shapes[i].toVectorString();
         if (i != shapes.size() - 1) {
             cout << " ";
-        } else {
-            cout << endl;
         }
     }
+    cout << endl;
     return shapes;
 }
 
@@ -158,6 +157,7 @@ vector<Vector2D> Field::findRectPositions() {
                     // check
                     if (/*i + k >= dimX || i + k >= dimY || - neni nutné díky bottom a right zarazce */ field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
                         flag = false;
+                        l = shapeY; // break inner for (where l is control variable)
                         k = shapeX; // break outer for (where k is control variable)
                     }
                 }
@@ -176,10 +176,9 @@ vector<Vector2D> Field::findRectPositions() {
         cout << poss[i].toPointString();
         if (i != poss.size() - 1) {
             cout << " ";
-        } else {
-            cout << endl;
         }
     }
+    cout << endl;
     return poss;
 }
 
