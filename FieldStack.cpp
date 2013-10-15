@@ -5,13 +5,14 @@ FieldStack::FieldStack() {
     this->topItem = this->bottomItem = NULL;
 }
 
-FieldStack::FieldStack(const FieldStack& orig) {
+FieldStack::FieldStack(const FieldStack& orig) { // Jakub: myslím že to ani nebudeme potřebovat, budem potřebovat spíš něco jako rozdělení stacku
+    cout << "copy-construction of FieldStack" << endl;
     this->size = 0; // start from an empty stack
     this->topItem = this->bottomItem = NULL;
 
     FieldStackItem *origCurrent = orig.bottomItem; // traverse the original stack from the bottom (since we have two pointers available)
     while (origCurrent) {
-        push(origCurrent->field); // ... and push field values for respective FieldStackItem-s
+        push(new Field(*(origCurrent->field))); // ... and push field values for respective FieldStackItem-s
         origCurrent = origCurrent->upper; // move upwards towards the top of the stack
     }
 }
