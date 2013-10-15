@@ -20,7 +20,6 @@ RectList::RectList(const RectList& orig) {
     this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
-    this->currentItemId = orig.currentItemId;
     this->headItem = NULL; // start by creating an empty list
 
     RectListItem *temp = orig.headItem;
@@ -29,6 +28,7 @@ RectList::RectList(const RectList& orig) {
         append(new Rectangle(*(temp->rect)));
         if (temp == orig.currentItem) { // this->currentItem have to point to copy of orig->currentItem;
             this->currentItem = this->tailItem;
+            this->currentItemId = orig.currentItemId;
         }
         temp = temp->next;
     }
@@ -126,8 +126,9 @@ int RectList::getPerimeterSum() const {
 string RectList::toString() const {
     ostringstream ss;
 
-    ss << "<RECTLIST>" << endl;
-    RectListItem* rectItem = headItem;
+    ss << "<RECTLIST>" << endl <<
+            "currentItemId: " << currentItemId << endl;
+            RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
         if (rectItem == headItem) {
             ss << "H";
