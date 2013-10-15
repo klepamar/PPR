@@ -18,8 +18,6 @@ private:
 public:
     Vector2D();
     Vector2D(int x, int y);
-    //Vector2D(const Vector2D& orig);
-    //virtual ~Vector2D();
     void setX(int x);
     int getX() const;
     void setY(int y);
@@ -31,7 +29,6 @@ public:
     string toVectorString() const;
     string toPointString() const;
     string toDimensionString() const;
-    //friend ostream& operator<<(ostream& os, const Vector2D& vector);
 };
 
 #endif	/* VECTOR2D_H */
