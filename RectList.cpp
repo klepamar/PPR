@@ -74,6 +74,7 @@ int RectList::getCurrentId() const {
 }
 
 void RectList::append(Rectangle* rect) {
+    //cout << "Appending new rectangle: " << rect->toString() << endl;
     RectListItem* newItem = new RectListItem(rect); // create a new item
     if (isEmpty()) {
         headItem = newItem; // remember firstItem so that destructor can properly delete all elements of the list
@@ -82,7 +83,6 @@ void RectList::append(Rectangle* rect) {
     } else {
         tailItem->next = newItem; // append the newly created item at the end of the list
     }
-    cout << "Appending new item with area: " << rect->getArea() << endl;
     tailItem = newItem;
     areaSum += rect->getArea();
     size++;
@@ -96,9 +96,9 @@ void RectList::toNext() {
     currentItemId++;
 
     if (currentItem != NULL) { //
-        cout << "Moving to the next rectangle with base pos: " << currentItem->rect->getBasePosition().toPointString() << endl;
+        cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
     } else {
-        cout << "Moving to the next rectangle with base pos: null" << endl;
+        cout << "Moving to the next rectangle: end of RectList" << endl;
     }
 }
 
@@ -123,7 +123,7 @@ int RectList::getPerimeterSum() const {
 string RectList::toString() const {
     ostringstream ss;
 
-    ss << "RECTLIST" << endl;
+    ss << "<RECTLIST>" << endl;
     RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
         if (rectItem == headItem) {
@@ -144,6 +144,7 @@ string RectList::toString() const {
         ss << " " << rectItem->rect->toString() << endl;
         rectItem = rectItem->next;
     }
+    ss << "</RECTLIST>" << endl;
     return ss.str();
 }
 

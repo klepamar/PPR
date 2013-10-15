@@ -53,18 +53,18 @@ int main(void) {
     Field* field;
     Field* bestField = NULL;
 
+    cout << "<TASK>" << endl;
     try {
         initField(field, fileName);
-        cout << "----- TASK -----" << endl;
         cout << field->toString();
     } catch (const char* ex) {
         cout << "Exception: " << ex << endl;
         return (EXIT_FAILURE);
     }
+    cout << "</TASK>" << endl;
 
-    
     /* test */
-    
+
     /* ALGORITMUS Z EDUXU 
      * 
     pro všechna nenulová čísla v mřížce, opakuj
@@ -94,7 +94,7 @@ int main(void) {
              *  Ukončijící podmínka DFS, řešení nalezeno.
              */
             if (field->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
-                cout << "currentRect = NULL\n";
+                cout << "Ending DFS, solution FOUND" << endl;
                 /*
                  * Zaznamenání nejlepšího řešení.
                  */
@@ -110,7 +110,6 @@ int main(void) {
              * (1)
              */
             if (field->getRectangles()->getCurrent()->hasShape() == false) {
-                cout << "solving RectShapes for rectangle: " << field->getRectangles()->getCurrent()->toString() << endl;
                 /*
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
@@ -122,12 +121,12 @@ int main(void) {
              * (1+tvar) (2)
              */
             if (field->getRectangles()->getCurrent()->hasPosition() == false) {
-                cout << "solving RectPositions for rectangle: " << field->getRectangles()->getCurrent()->toString() << endl;
                 /*
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
                  */
                 if (field->solveRectPositions(stack) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
+                    cout << "Ending DFS, solution NOT found" << endl;
                     break;
                 }
             }
@@ -151,12 +150,13 @@ int main(void) {
         }
     }
 
-    cout << "----- SOLUTION -----" << endl;
+    cout << "<SOLUTION>" << endl;
     if (bestField != NULL) {
         cout << bestField->toString();
     } else {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }
+    cout << "</SOLUTION>" << endl;
 
     delete bestField;
 
