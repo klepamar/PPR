@@ -16,9 +16,6 @@ private:
 
 public:
     Rectangle(int basePositionX, int basePositionY, int volume, int maxHeight, int maxWidth);
-    //Rectangle(const Rectangle& orig);
-    //virtual ~Rectangle();
-    Rectangle& operator= (const Rectangle & orig);
 
     Vector2D getBasePosition() const;
     Vector2D getPosition() const;

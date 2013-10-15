@@ -16,32 +16,6 @@ Rectangle::Rectangle(int basePosX, int basePosY, int area, int maxHeight, int ma
     }
 }
 
-/* no need
-Rectangle::Rectangle(const Rectangle& orig) {
-    this->pos = orig.pos;
-    this->basePos = orig.basePos;
-    this->shape = orig.shape;
-    this->area = orig.area;
-}
-
-Rectangle::~Rectangle() {
-}
- */
-
-Rectangle& Rectangle::operator=(const Rectangle & orig) {
-    cout << "Rect op=";
-    /*
-        if (this == &orig) // prevent from assignment to itself
-            return *this;
-        this->pos = orig.pos; // same as copy constructor...
-        this->basePos = orig.basePos;
-        this->shape = orig.shape;
-        this->area = orig.area;
-
-        return *this; // ... but also need to return address of the current object
-     */
-}
-
 Vector2D Rectangle::getBasePosition() const {
     return basePos;
 }
