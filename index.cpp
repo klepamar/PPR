@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "Field.h"
 #include "FieldStack.h"
@@ -38,11 +39,15 @@ void initField(Field* &field, const char* fileName) {
     field->fill(in);
 
     // check
-    if (n != field->getRectangles()->getSize()) {
-        throw "Given n (number of non-zero numbers) does not correspond to actual non-zero numbers in given field!";
+    if (n != 0 && n != field->getRectangles()->getSize()) { // n = 0 <=> n is not given
+        ostringstream ss;
+        ss << "Given n (number of non-zero numbers) does not correspond to actual non-zero numbers in given field! " << "n=" << n << " != " << field->getRectangles()->getSize();
+        throw ss.str();
     }
     if (field->getDimension().getX() * field->getDimension().getY() != field->getRectangles()->getAreaSum()) {
-        throw "Given rectangles areas (non-zero numbers) do not cover whole field area!";
+        ostringstream ss;
+        ss << "Given rectangles areas (non-zero numbers) do not cover whole field area! " << Vector2D(a, b).toDimensionString() << "=" << a * b << " != " << field->getRectangles()->getAreaSum();
+        throw ss.str();
     }
 
     in.close();
@@ -53,14 +58,18 @@ int main(void) {
     Field* field;
     Field* bestField = NULL;
 
-    cout << "---------- TASK ----------" << endl;
     try {
         initField(field, fileName);
-        cout << field->toString();
     } catch (const char* ex) {
         cout << "Exception: " << ex << endl;
         return (EXIT_FAILURE);
+    } catch (string ex) {
+        cout << "Exception: " << ex << endl;
+        return (EXIT_FAILURE);
     }
+
+    cout << "---------- TASK ----------" << endl;
+    cout << field->toString();
 
     /* test */
 
