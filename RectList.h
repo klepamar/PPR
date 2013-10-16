@@ -20,6 +20,10 @@ private:
             this->next = NULL;
             this->rect = rectangle; // call overloaded function of Rectangle operator=
         }
+
+        virtual ~RectListItem() {
+            delete rect;
+        }
     };
 
     int size; // number of elements within the list
@@ -44,7 +48,7 @@ public:
 
     void append(Rectangle* rectangle);
     int getPerimeterSum() const;
-    
+
     std::string toString() const;
 };
 
