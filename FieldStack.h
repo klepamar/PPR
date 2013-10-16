@@ -28,6 +28,10 @@ private:
             this->upper = this->below = NULL;
             this->field = field;
         }
+
+        virtual ~FieldStackItem() {
+            delete field;
+        }
     };
 
     int size;
@@ -42,7 +46,7 @@ public:
     void push(Field* field);
     Field* pop();
     bool isEmpty() const;
-    
+
     std::string toString() const;
 };
 

@@ -44,7 +44,6 @@ RectList::~RectList() {
     {
         nextTemp = temp->next;
         delete temp;
-        temp = NULL;
         temp = nextTemp;
     }
     this->tailItem = this->currentItem = this->headItem = NULL;
@@ -104,7 +103,7 @@ void RectList::toNext() {
         if (currentItem != NULL) { //
             cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
         } else {
-            cout << "Moving to the next rectangle: end of RectList" << endl;
+            cout << "Moving to the next rectangle: null" << endl;
         }
     }
 }
