@@ -6,6 +6,8 @@
 
 using namespace std;
 
+extern bool verbose;
+
 RectList::RectList() {
     this->size = 0;
     this->areaSum = 0;
@@ -78,7 +80,6 @@ int RectList::getCurrentId() const {
 }
 
 void RectList::append(Rectangle* rect) {
-    //cout << "Appending new rectangle: " << rect->toString() << endl;
     RectListItem* newItem = new RectListItem(rect); // create a new item
     if (isEmpty()) {
         headItem = newItem; // remember firstItem so that destructor can properly delete all elements of the list
@@ -99,10 +100,12 @@ void RectList::toNext() {
     currentItem = currentItem->next; // move to next
     currentItemId++;
 
-    if (currentItem != NULL) { //
-        cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
-    } else {
-        cout << "Moving to the next rectangle: end of RectList" << endl;
+    if (verbose) {
+        if (currentItem != NULL) { //
+            cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
+        } else {
+            cout << "Moving to the next rectangle: end of RectList" << endl;
+        }
     }
 }
 
@@ -129,7 +132,7 @@ string RectList::toString() const {
 
     ss << "<RECTLIST>" << endl <<
             "currentItemId: " << currentItemId << endl;
-            RectListItem* rectItem = headItem;
+    RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
         if (rectItem == headItem) {
             ss << "H";

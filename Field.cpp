@@ -8,6 +8,8 @@
 
 using namespace std;
 
+extern bool verbose;
+
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
     this->rects = new RectList(); // create an empty RectList
@@ -75,7 +77,8 @@ void Field::fill(istream &in) {
 }
 
 bool Field::solveRectShapes(FieldStack &stack) {
-    cout << "SolvingRectShapes for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
+    if (verbose) cout << "SolvingRectShapes for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
+
     Field* newField;
     vector<Vector2D> shapes;
 
@@ -94,19 +97,23 @@ bool Field::solveRectShapes(FieldStack &stack) {
 vector<Vector2D> Field::findRectShapes() {
     vector<Vector2D> shapes = rects->getCurrent()->getPreparedShapes();
 
-    cout << "    possible shapes: ";
-    for (int i = 0; i < shapes.size(); i++) {
-        cout << shapes[i].toVectorString();
-        if (i != shapes.size() - 1) {
-            cout << " ";
+    if (verbose) {
+        cout << "possible shapes: ";
+        for (int i = 0; i < shapes.size(); i++) {
+            cout << shapes[i].toVectorString();
+            if (i != shapes.size() - 1) {
+                cout << " ";
+            }
         }
+        cout << endl;
     }
-    cout << endl;
+
     return shapes;
 }
 
 bool Field::solveRectPositions(FieldStack &stack) {
-    cout << "SolvingRectPositions for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
+    if (verbose) cout << "SolvingRectPositions for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
+
     Field* newField;
     vector<Vector2D> poss;
 
@@ -146,8 +153,10 @@ vector<Vector2D> Field::findRectPositions() {
     int bottom = baseX - max((baseX + shapeX - 1) - (dimX - 1), 0); // levý horní roh může být nejdál tam kde se "zrzadlí" (odečtu přesahy) jeho pravy spodní roh pokud je polozen na base
     int right = baseY - max((baseY + shapeY - 1) - (dimY - 1), 0); // levý horní roh může být nejdál tam kde se "zrzadlí" (odečtu přesahy) jeho pravy spodní roh pokud je polozen na base
 
-    cout << "    min of top-left corner: " << Vector2D(top, left).toPointString() << endl;
-    cout << "    max of top-left corner: " << Vector2D(bottom, right).toPointString() << endl;
+    if (verbose) {
+        cout << "min of top-left corner: " << Vector2D(top, left).toPointString() << endl;
+        cout << "max of top-left corner: " << Vector2D(bottom, right).toPointString() << endl;
+    }
 
     int tmp = field[baseX][baseY];
     field[baseX][baseY] = 0; // easier checking
@@ -173,20 +182,22 @@ vector<Vector2D> Field::findRectPositions() {
     }
     field[baseX][baseY] = tmp; // restore zeroed basePos
 
-
-    cout << "    possible positions: ";
-    for (int i = 0; i < poss.size(); i++) {
-        cout << poss[i].toPointString();
-        if (i != poss.size() - 1) {
-            cout << " ";
+    if (verbose) {
+        cout << "possible positions: ";
+        for (int i = 0; i < poss.size(); i++) {
+            cout << poss[i].toPointString();
+            if (i != poss.size() - 1) {
+                cout << " ";
+            }
         }
+        cout << endl;
     }
-    cout << endl;
     return poss;
 }
 
 void Field::colorField() {
-    cout << "ColoringField:" << endl;
+    if (verbose) cout << "ColoringField:" << endl;
+
     Rectangle* rect = rects->getCurrent();
     int color = rects->getCurrentId();
 
@@ -201,7 +212,7 @@ void Field::colorField() {
     // add perimeter
     perSum += rect->getPerimeter();
 
-    cout << this->toString();
+    if (verbose) cout << this->toString();
 }
 
 /*

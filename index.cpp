@@ -2,13 +2,16 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <string.h>
 
 #include "Field.h"
 #include "FieldStack.h"
 
 using namespace std;
 
-const char *fileName = "vstup.txt";
+const char *fileName = "input.txt";
+bool verbose = false;
 
 /**
  * Read data from given file and initialize field.
@@ -25,7 +28,9 @@ void initField(Field* &field, const char* fileName) {
     // open file
     in.open(fileName);
     if (!in.is_open()) {
-        throw "Could not open a file!";
+        ostringstream ss;
+        ss << "Could not open a file \"" << fileName << "\"!";
+        throw ss.str();
     }
 
     // read parameters
@@ -46,26 +51,52 @@ void initField(Field* &field, const char* fileName) {
     }
     if (field->getDimension().getX() * field->getDimension().getY() != field->getRectangles()->getAreaSum()) {
         ostringstream ss;
-        ss << "Given rectangles areas (non-zero numbers) do not cover whole field area! " << Vector2D(a, b).toDimensionString() << "=" << a * b << " != " << field->getRectangles()->getAreaSum();
+        ss << "Given rectangles areas (non-zero numbers) do not cover field area precisely! " << Vector2D(a, b).toDimensionString() << "=" << a * b << " != " << field->getRectangles()->getAreaSum();
         throw ss.str();
     }
 
     in.close();
 }
 
-int main(void) {
+int processArguments(int argc, char** argv) {
+    for (int i = 1; i < argc; i++) { // argv[0] executable name
+        if (strcmp(argv[i], "-v") == 0) {
+            verbose = true;
+        } else if (strcmp(argv[i], "-f") == 0) {
+            fileName = argv[i + 1];
+            i++;
+        } else if (strcmp(argv[i], "-h") == 0) {
+            cout << "Usage:" << endl <<
+                    "\t-v\t\tfor verbose" << endl <<
+                    "\t-f \"file\"\tto specific input file, default is \"input.txt\"" << endl <<
+                    "\t-h\t\tfor this help" << endl;
+            exit(EXIT_SUCCESS); // @TODO do clean-up
+        } else {
+            cout << argv[i] << " - no such parameter" << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+/**
+ * Usage:
+ *      -v              for verbose 
+ *      -f "file"       to specific input file, default is "input.txt"
+ *      -h              for this help
+ */
+int main(int argc, char** argv) {
     FieldStack stack; // use an implicit constructor to initialise stack pointers & size
-    Field* field;
+    Field* field = NULL;
     Field* bestField = NULL;
 
+    processArguments(argc, argv);
     try {
         initField(field, fileName);
-    } catch (const char* ex) {
-        cout << "Exception: " << ex << endl;
-        return (EXIT_FAILURE);
     } catch (string ex) {
         cout << "Exception: " << ex << endl;
-        return (EXIT_FAILURE);
+
+        delete field;
+        exit(EXIT_FAILURE); // @TODO do clean-up
     }
 
     cout << "---------- TASK ----------" << endl;
@@ -102,7 +133,8 @@ int main(void) {
              *  Ukončijící podmínka DFS, řešení nalezeno.
              */
             if (field->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
-                cout << "Ending DFS, solution FOUND" << endl;
+                if (verbose) cout << "Ending DFS, solution FOUND." << endl;
+
                 /*
                  * Zaznamenání nejlepšího řešení.
                  */
@@ -134,7 +166,8 @@ int main(void) {
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
                  */
                 if (field->solveRectPositions(stack) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
-                    cout << "Ending DFS, solution NOT found" << endl;
+                    if (verbose) cout << "Ending DFS, solution NOT found." << endl;
+
                     break;
                 }
             }
@@ -166,14 +199,15 @@ int main(void) {
     }
 
     delete bestField;
+    exit(EXIT_SUCCESS); // @TODO do clean-up
 
     /* POZNÁMKY
      * 
-     * řešit ořezávání pomocí nejlepšího řešení, aktuální testovat jestli už náhodou není horší než zatím nejlepší - asi lze úplně vynechat nepřinese to podle mě moc velké zrychlení
+     * řešit ořezávání pomocí nejlepšího řešení/absolutně nej řešení, aktuální testovat jestli už náhodou není horší než zatím nejlepší - asi lze úplně vynechat nepřinese to podle mě moc velké zrychlení
      * 
      * není tam nikce moc ošetření na NULL pointery
      * 
-     * Mít správně destruktory, kopírující konstruktory
+     * Mít správně destruktory,
      * 
      * Pro nějaký to lepší půlení zásobníku bysme mohli ukládat číslo kolik pod sebou ještě má nevyřešenejch Rect a tím by se to dalo docela hezky půlit. Vědět kolik je celkovej součet a potom jít odzadu dokud ho nepřesáhnu.
      * 
@@ -182,6 +216,5 @@ int main(void) {
      * 
      * Nešlo by nějak pamatovat si toho míň než celej Field? Asi zbytečný to řešit pokud nebude problém s pamětí
      * 
-     *  tabulku vyplňovat číslem vyplňované dlaždice ať vidíme jak to nakonec vypadá to rozdělení
      */
 }

@@ -1,7 +1,11 @@
+#include <sstream>
+
 #include "FieldStack.h"
 #include "Field.h"
 
 using namespace std;
+
+extern bool verbose;
 
 FieldStack::FieldStack() {
     this->size = 0;
@@ -9,7 +13,6 @@ FieldStack::FieldStack() {
 }
 
 FieldStack::FieldStack(const FieldStack& orig) { // Jakub: myslím že to ani nebudeme potřebovat, budem potřebovat spíš něco jako rozdělení stacku
-    cout << "copy-construction of FieldStack" << endl;
     this->size = 0; // start from an empty stack
     this->topItem = this->bottomItem = NULL;
 
@@ -50,7 +53,8 @@ void FieldStack::push(Field* field) {
 }
 
 Field* FieldStack::pop() {
-    cout << "Popping stack:" << endl;
+    if (verbose) cout << "Popping stack:" << endl;
+
     if (isEmpty()) return NULL; // make sure you check what you have received from the stack!
 
     FieldStackItem *retValue = topItem; // FieldStackItem to be returned
@@ -63,10 +67,10 @@ Field* FieldStack::pop() {
     {
         this->topItem = this->bottomItem = NULL;
     }
-
     this->size = this->size - 1;
 
-    cout << retValue->field->toString();
+    if (verbose) cout << retValue->field->toString();
+
     return retValue->field; // return only the field portion of FieldStackItem
 }
 
@@ -76,13 +80,17 @@ bool FieldStack::isEmpty() const {
 }
 
 std::string FieldStack::toString() const {
+    ostringstream ss;
     FieldStackItem *tmp = this->topItem;
-    cout << "<FIELDSTACK>" << endl;
+    
+    ss << "<FIELDSTACK>" << endl;
     for (int i = 0; tmp != NULL; i++) {
-        cout << "<" << size - 1 << ">" << endl;
-        cout << tmp->field->toString();
-        cout << "</" << size - 1 << ">" << endl;
+        ss << "<" << size - 1 << ">" << endl;
+        ss << tmp->field->toString();
+        ss << "</" << size - 1 << ">" << endl;
         tmp = tmp->below;
     }
-    cout << "</FIELDSTACK>" << endl;
+    ss << "</FIELDSTACK>" << endl;
+    
+    return ss.str();
 }
