@@ -58,8 +58,8 @@ void initField(Field* &field, const char* fileName) {
     in.close();
 }
 
-int processArguments(int argc, char** argv) {
-    for (int i = 1; i < argc; i++) { // argv[0] executable name
+void processArguments(int argc, char** argv) {
+    for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-f") == 0) {
@@ -70,10 +70,11 @@ int processArguments(int argc, char** argv) {
                     "\t-v\t\tfor verbose" << endl <<
                     "\t-f \"file\"\tto specific input file, default is \"input.txt\"" << endl <<
                     "\t-h\t\tfor this help" << endl;
-            exit(EXIT_SUCCESS); // @TODO do clean-up
+            exit(EXIT_SUCCESS); // clean-up is not necessary, no class object has been created yet
         } else {
-            cout << argv[i] << " - no such parameter" << endl;
-            exit(EXIT_FAILURE);
+            ostringstream ss;
+            ss << argv[i] << " - no such argument!";
+            throw ss.str();
         }
     }
 }
@@ -89,14 +90,15 @@ int main(int argc, char** argv) {
     Field* field = NULL;
     Field* bestField = NULL;
 
-    processArguments(argc, argv);
+
     try {
+        processArguments(argc, argv);
         initField(field, fileName);
     } catch (string ex) {
         cout << "Exception: " << ex << endl;
 
-        delete field;
-        exit(EXIT_FAILURE); // @TODO do clean-up
+        delete field; // clean-up
+        exit(EXIT_FAILURE); 
     }
 
     cout << "---------- TASK ----------" << endl;
@@ -198,8 +200,9 @@ int main(int argc, char** argv) {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }
 
-    delete bestField;
-    exit(EXIT_SUCCESS); // @TODO do clean-up
+    delete field; // clean-up
+    delete bestField; // clean-up
+    exit(EXIT_SUCCESS);
 
     /* POZNÁMKY
      * 
