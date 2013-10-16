@@ -3,8 +3,6 @@
 # check all files in the form of vstup_<no>.txt
 # result for every input is expected to be found in vstup_<no>.result
 
-cp "vstup.txt" "vstup_backup.txt"
-
 for file in $(ls vstup_[0-9]*.txt)
 do
 	resultFile=$(echo $file | sed 's/\(.*\).txt/\1.result/')
@@ -29,4 +27,4 @@ do
 	
 done
 
-mv "vstup_backup.txt" "vstup.txt"
+rm output.log
