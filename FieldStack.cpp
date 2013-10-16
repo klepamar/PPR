@@ -55,11 +55,7 @@ void FieldStack::push(Field* field) {
 Field* FieldStack::pop() {
     if (verbose) cout << "Popping stack:" << endl;
 
-    if (isEmpty()) {
-        if (verbose) cout << "<FIELD>" << endl << "null" << endl << "</FIELD>" << endl;
-        
-        return NULL; // make sure you check what you have received from the stack!
-    }
+    if (isEmpty()) return NULL; // make sure you check what you have received from the stack!
 
     FieldStackItem *retValue = topItem; // FieldStackItem to be returned
 
@@ -86,7 +82,7 @@ bool FieldStack::isEmpty() const {
 std::string FieldStack::toString() const {
     ostringstream ss;
     FieldStackItem *tmp = this->topItem;
-
+    
     ss << "<FIELDSTACK>" << endl;
     for (int i = 0; tmp != NULL; i++) {
         ss << "<" << size - 1 << ">" << endl;
@@ -95,6 +91,6 @@ std::string FieldStack::toString() const {
         tmp = tmp->below;
     }
     ss << "</FIELDSTACK>" << endl;
-
+    
     return ss.str();
 }

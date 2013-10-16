@@ -69,8 +69,7 @@ void Field::fill(istream &in) {
             field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
 
             if (field[i][j] != 0) { // create new rectangle
-                Rectangle* rect = new Rectangle(i, j, field[i][j], dimX, dimY);
-                rects->append(rect);
+                rects->append(new Rectangle(i, j, field[i][j], dimX, dimY));
             }
         }
         getline(in, s); // get rid of new line character
@@ -200,7 +199,7 @@ void Field::colorField() {
     if (verbose) cout << "ColoringField:" << endl;
 
     Rectangle* rect = rects->getCurrent();
-    int color = -rects->getCurrentId();
+    int color = rects->getCurrentId();
 
     // color field
     for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
@@ -238,12 +237,8 @@ string Field::toString() const {
         ss << "│";
         for (int j = 0; j < dimY; j++) {
             if (field[i][j]) {
-                if (field[i][j] < 0) { // is color
-                    ss << " " << setw(2) << (char) ((-field[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
-                } else { // is area
-                    ss << " " << setw(2) << field[i][j] << " │";
-                }
-            } else { // is empty
+                ss << " " << setw(2) << field [i][j] << " │";
+            } else {
                 ss << "    │";
             }
         }

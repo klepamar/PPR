@@ -42,9 +42,7 @@ void initField(Field* &field, const char* fileName) {
     // create new field and fill with data
     field = new Field(Vector2D(a, b));
     field->fill(in);
-    
-    in.close();
-    
+
     // check
     if (n != 0 && n != field->getRectangles()->getSize()) { // n = 0 <=> n is not given
         ostringstream ss;
@@ -56,6 +54,8 @@ void initField(Field* &field, const char* fileName) {
         ss << "Given rectangles areas (non-zero numbers) do not cover field area precisely! " << Vector2D(a, b).toDimensionString() << "=" << a * b << " != " << field->getRectangles()->getAreaSum();
         throw ss.str();
     }
+
+    in.close();
 }
 
 void processArguments(int argc, char** argv) {
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
         cout << "Exception: " << ex << endl;
 
         delete field; // clean-up
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); 
     }
 
     cout << "---------- TASK ----------" << endl;
