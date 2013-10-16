@@ -27,9 +27,9 @@ public:
     void fill(std::istream &in);
 
     // use current rectangle
-    bool solveRectShapes(FieldStack  &stack);
+    bool solveRectShapes(FieldStack* stack);
     std::vector<Vector2D> findRectShapes();
-    bool solveRectPositions(FieldStack &stack);
+    bool solveRectPositions(FieldStack* stack);
     std::vector<Vector2D> findRectPositions();
     void colorField();
 

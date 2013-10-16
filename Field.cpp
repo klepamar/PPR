@@ -77,7 +77,7 @@ void Field::fill(istream &in) {
     }
 }
 
-bool Field::solveRectShapes(FieldStack &stack) {
+bool Field::solveRectShapes(FieldStack* stack) {
     if (verbose) cout << "SolvingRectShapes for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
 
     Field* newField;
@@ -89,7 +89,7 @@ bool Field::solveRectShapes(FieldStack &stack) {
     for (int i = 1; i < shapes.size(); i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setShape(shapes[i]);
-        stack.push(newField);
+        stack->push(newField);
     }
 
     return true; // every rectangle has at least one possible shape
@@ -112,7 +112,7 @@ vector<Vector2D> Field::findRectShapes() {
     return shapes;
 }
 
-bool Field::solveRectPositions(FieldStack &stack) {
+bool Field::solveRectPositions(FieldStack* stack) {
     if (verbose) cout << "SolvingRectPositions for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
 
     Field* newField;
@@ -128,7 +128,7 @@ bool Field::solveRectPositions(FieldStack &stack) {
     for (int i = 1; i < poss.size(); i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setPosition(poss[i]);
-        stack.push(newField);
+        stack->push(newField);
     }
 
     return true;

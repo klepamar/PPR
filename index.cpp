@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <string.h>
+#include <ctime>
 
 #include "Field.h"
 #include "FieldStack.h"
@@ -42,9 +43,9 @@ void initField(Field* &field, const char* fileName) {
     // create new field and fill with data
     field = new Field(Vector2D(a, b));
     field->fill(in);
-    
+
     in.close();
-    
+
     // check
     if (n != 0 && n != field->getRectangles()->getSize()) { // n = 0 <=> n is not given
         ostringstream ss;
@@ -86,10 +87,12 @@ void processArguments(int argc, char** argv) {
  *      -h              for this help
  */
 int main(int argc, char** argv) {
-    FieldStack stack; // use an implicit constructor to initialise stack pointers & size
+    FieldStack* stack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
     Field* field = NULL;
     Field* bestField = NULL;
+    time_t start, end;
 
+    start = time(NULL);
 
     try {
         processArguments(argc, argv);
@@ -98,6 +101,8 @@ int main(int argc, char** argv) {
         cout << "Exception: " << ex << endl;
 
         delete field; // clean-up
+        delete bestField; // clean-up
+        delete stack; // clean-up
         exit(EXIT_FAILURE);
     }
 
@@ -141,10 +146,11 @@ int main(int argc, char** argv) {
                  * Zaznamenání nejlepšího řešení.
                  */
                 if (bestField == NULL || field->getPerimetrSum() < bestField->getPerimetrSum()) {
-                    delete bestField;
+                    delete bestField; // clean-up
                     bestField = field;
                     field = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
                 }
+
                 break;
             }
 
@@ -186,12 +192,14 @@ int main(int argc, char** argv) {
          * Načtení dalšího stavu k řešení nového DFS + ukončující podmínka výpočtu.
          */
         delete field;
-        field = stack.pop();
+        field = stack->pop();
         if (field == NULL) {
             break; // sequential
             // parallel has to ask other processors
         }
     }
+
+    end = time(NULL);
 
     cout << "---------- SOLUTION ----------" << endl;
     if (bestField != NULL) {
@@ -200,8 +208,11 @@ int main(int argc, char** argv) {
         cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
     }
 
+    cout << "Calculation took " << difftime(end, start) << " sec." << endl;
+
     delete field; // clean-up
     delete bestField; // clean-up
+    delete stack; // clean-up
     exit(EXIT_SUCCESS);
 
     /* POZNÁMKY
