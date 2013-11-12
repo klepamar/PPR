@@ -144,6 +144,7 @@ int main(int argc, char** argv) {
     }
     
     /* test komunikace */
+    
 
     /* ALGORITMUS */
     while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
