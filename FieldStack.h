@@ -48,6 +48,9 @@ public:
     bool isEmpty() const;
 
     std::string toString() const;
+
+    void pack(void *outbuffer, int bufferSize, int *bufferPosition);
+    static FieldStack* unpack(void *inbuffer, int bufferSize, int *bufferPosition);
 };
 
 #endif	/* FIELDSTACK_H */

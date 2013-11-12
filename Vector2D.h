@@ -25,6 +25,9 @@ public:
     std::string toVectorString() const;
     std::string toPointString() const;
     std::string toDimensionString() const;
+    
+    void pack(void *outbuffer, int bufferSize, int *bufferPosition);
+    static Vector2D unpack(void *inbuffer, int bufferSize, int *bufferPosition); // pozor nevraci pointer ale objekt (vsude s Vector2D pracujeme temer jako s primitivnim typem)
 };
 
 #endif	/* VECTOR2D_H */

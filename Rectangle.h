@@ -13,7 +13,8 @@ private:
     Vector2D shape; // x = height, y = width
 
 public:
-    Rectangle(int basePositionX, int basePositionY, int volume);
+    Rectangle(int basePositionX, int basePositionY, int area);
+    Rectangle(Vector2D basePosition, int area);
 
     Vector2D getBasePosition() const;
     Vector2D getPosition() const;
@@ -24,8 +25,11 @@ public:
     bool hasShape() const;
     int getArea() const;
     int getPerimeter() const;
-    
+
     std::string toString() const;
+
+    void pack(void *outbuffer, int bufferSize, int *bufferPosition);
+    static Rectangle* unpack(void *inbuffer, int bufferSize, int *bufferPosition);
 };
 
 #endif	/* RECTANGLE_H */

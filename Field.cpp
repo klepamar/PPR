@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stdlib.h>
+#include "mpi.h"
 
 using namespace std;
 
@@ -207,24 +208,31 @@ vector<Vector2D> Field::findRectPositions() {
     return poss;
 }
 
-void Field::colorField() {
+void Field::colorField(Rectangle* rect) {
     if (verbose) cout << "ColoringField:" << endl;
 
-    Rectangle* rect = rects->getCurrent();
-    int color = -rects->getCurrentId();
-
-    // color field
-    for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
-        for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
-            field[i][j] = color;
+    if (rect->hasPosition()) { // true coloring area
+        // color field
+        int color = -rects->getCurrentId();
+        for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
+            for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
+                field[i][j] = color;
+            }
         }
-    }
-    color++;
+        color++;
 
-    // add perimeter
-    perSum += rect->getPerimeter();
+        // add perimeter
+        perSum += rect->getPerimeter();
+
+    } else { // just write area
+        field[rect->getBasePosition().getX()][rect->getBasePosition().getY()] = rect->getArea();
+    }
 
     if (verbose) cout << this->toString();
+}
+
+void Field::colorField() {
+    colorField(rects->getCurrent());
 }
 
 /*
@@ -282,4 +290,32 @@ string Field::toString() const {
     ss << "</FIELD>" << endl;
 
     return ss.str();
+}
+
+void Field::pack(void *buffer, int bufferSize, int *bufferPos) {
+    int dimXcopy = this->dimX; // je const
+    int dimYcopy = this->dimY; // je const
+    MPI_Pack(&dimXcopy, 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // dimX
+    MPI_Pack(&dimYcopy, 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // dimY
+    this->rects->pack(buffer, bufferSize, bufferPos); // rects
+}
+
+Field * Field::unpack(void *buffer, int bufferSize, int *bufferPos) {
+    int dimX, dimY;
+    Field* field;
+
+    MPI_Unpack(buffer, bufferSize, bufferPos, &dimX, 1, MPI_INT, MPI_COMM_WORLD); // x
+    MPI_Unpack(buffer, bufferSize, bufferPos, &dimY, 1, MPI_INT, MPI_COMM_WORLD); // y
+
+    field = new Field(Vector2D(dimX, dimY)); // sestaveni
+    field->rects = RectList::unpack(buffer, bufferSize, bufferPos); // rects
+
+    field->rects->toFirst(); // na zacatek
+    while(field->rects->getCurrent() != NULL) { // vsechny projit
+        field->colorField(field->rects->getCurrent()); // perSum, field
+        field->rects->toNext();
+    }
+    field->rects->toUnpositioned(); // vratit se na current;
+    
+    return field;
 }

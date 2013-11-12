@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
-        cout << myPrefix << "Calculation took " << (t_end - t_start) << " sec." << endl;
+        cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
     }
 
     delete field; // clean-up

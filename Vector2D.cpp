@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <climits>
+#include "mpi.h"
 
 using namespace std;
 
@@ -77,4 +78,18 @@ string Vector2D::toDimensionString() const {
         ss << x << "x" << y;
     }
     return ss.str();
+}
+
+void Vector2D::pack(void *buffer, int bufferSize, int *bufferPos) {
+    MPI_Pack(&(this->x), 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // x
+    MPI_Pack(&(this->y), 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // y
+}
+
+Vector2D Vector2D::unpack(void *buffer, int bufferSize, int *bufferPos) {
+    int x, y;
+    
+    MPI_Unpack(buffer, bufferSize, bufferPos, &x, 1, MPI_INT, MPI_COMM_WORLD); // x
+    MPI_Unpack(buffer, bufferSize, bufferPos, &y, 1, MPI_INT, MPI_COMM_WORLD); // y
+    
+    return Vector2D(x, y);
 }

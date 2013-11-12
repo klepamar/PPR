@@ -3,6 +3,7 @@
 #include <cstdlib> 
 #include <iostream>
 #include <sstream>
+#include "mpi.h"
 
 using namespace std;
 
@@ -10,16 +11,13 @@ extern bool verbose;
 
 RectList::RectList() {
     this->size = 0;
-    this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
-    this->currentItemId = 0;
     this->headItem = NULL;
 }
 
 RectList::RectList(const RectList& orig) {
     this->size = 0;
-    this->areaSum = 0;
     this->tailItem = NULL;
     this->currentItem = NULL;
     this->headItem = NULL; // start by creating an empty list
@@ -30,7 +28,6 @@ RectList::RectList(const RectList& orig) {
         append(new Rectangle(*(temp->rect)));
         if (temp == orig.currentItem) { // this->currentItem have to point to copy of orig->currentItem;
             this->currentItem = this->tailItem;
-            this->currentItemId = orig.currentItemId;
         }
         temp = temp->next;
     }
@@ -64,7 +61,15 @@ int RectList::getSize() const {
 }
 
 int RectList::getAreaSum() const {
-    return this->areaSum;
+    int sum = 0;
+
+    RectListItem* tmp = this->headItem;
+    while (tmp != NULL) {
+        sum += tmp->rect->getArea();
+        tmp = tmp->next;
+    }
+
+    return sum;
 }
 
 Rectangle* RectList::getCurrent() const {
@@ -75,36 +80,37 @@ Rectangle* RectList::getCurrent() const {
 }
 
 int RectList::getCurrentId() const {
-    return currentItemId;
+    return currentItem->id;
 }
 
 void RectList::append(Rectangle* rect) {
-    RectListItem* newItem = new RectListItem(rect); // create a new item
+    RectListItem* newItem = new RectListItem(rect, size); // create a new item
     if (isEmpty()) {
         headItem = newItem; // remember firstItem so that destructor can properly delete all elements of the list
         currentItem = newItem; // current & tail items will correspond to the only item in the list
-        currentItemId = 1;
     } else {
         tailItem->next = newItem; // append the newly created item at the end of the list
     }
     tailItem = newItem;
-    areaSum += rect->getArea();
     size++;
+}
+
+void RectList::toFirst() {
+    currentItem = headItem;
+}
+
+void RectList::toUnpositioned() {
+    while (currentItem->rect->hasPosition()) { // pokud je uz vyreseny (ma pozici) posunu se na dalsi
+        toNext();
+    }
 }
 
 void RectList::toNext() {
     if (currentItem == NULL) { // we have already visited all items in the list or list is empty
-        return;
-    }
-    currentItem = currentItem->next; // move to next
-    currentItemId++;
-
-    if (verbose) {
-        if (currentItem != NULL) { //
-            cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
-        } else {
-            cout << "Moving to the next rectangle: null" << endl;
-        }
+        if (verbose) cout << "Moving to the next rectangle: null" << endl;
+    } else {
+        currentItem = currentItem->next; // move to next
+        if (verbose) cout << "Moving to the next rectangle: " << currentItem->rect->toString() << endl;
     }
 }
 
@@ -130,7 +136,7 @@ string RectList::toString() const {
     ostringstream ss;
 
     ss << "<RECTLIST>" << endl <<
-            "currentItemId: " << currentItemId << endl;
+            "currentItemId: " << currentItem->id << endl;
     RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
         if (rectItem == headItem) {
@@ -155,3 +161,30 @@ string RectList::toString() const {
     return ss.str();
 }
 
+void RectList::pack(void *buffer, int bufferSize, int *bufferPos) {
+
+    MPI_Pack(&(this->size), 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // size
+    RectListItem *tmp = this->headItem; // jdu od zacatku abych mohl v unpack pridavat pomoci append
+    while (tmp != NULL) {
+        tmp->rect->pack(buffer, bufferSize, bufferPos);
+        tmp = tmp->next;
+    }
+}
+
+RectList* RectList::unpack(void *buffer, int bufferSize, int *bufferPos) {
+    int size;
+    RectList* rectList;
+    Rectangle* rect;
+
+    MPI_Unpack(buffer, bufferSize, bufferPos, &size, 1, MPI_INT, MPI_COMM_WORLD); // size
+
+    rectList = new RectList(); // sestaveni
+    for (int i = 0; i < size; i++) {
+        rect = Rectangle::unpack(buffer, bufferSize, bufferPos);
+        rectList->append(rect); // headItem, tailItem, rectItems
+    }
+
+    rectList->toUnpositioned(); // currentItem
+
+    return rectList;
+}

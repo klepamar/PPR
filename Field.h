@@ -31,9 +31,13 @@ public:
     std::vector<Vector2D> findRectShapes();
     bool solveRectPositions(FieldStack* stack);
     std::vector<Vector2D> findRectPositions();
+    void colorField(Rectangle* rectangle);
     void colorField();
 
     std::string toString() const;
+    
+    void pack(void *outbuffer, int bufferSize, int *bufferPosition);
+    static Field* unpack(void *inbuffer, int bufferSize, int *bufferPosition);    
 };
 
 #endif	/* FIELD_H */
