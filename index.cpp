@@ -142,8 +142,8 @@ int main(int argc, char** argv) {
         cout << "---------- TASK ----------" << endl;
         cout << field->toString();
     }
-
-    cout << myPrefix << "hlasim se" << endl;
+    
+    /* test komunikace */
 
     /* ALGORITMUS */
     while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
@@ -220,8 +220,6 @@ int main(int argc, char** argv) {
             // parallel has to ask other processors
         }
     }
-    
-    cout << myPrefix << "koncim" << endl;
 
     /* cekam na dokonceni vypoctu */
     MPI_Barrier(MPI_COMM_WORLD);
