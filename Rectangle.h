@@ -11,10 +11,9 @@ private:
     Vector2D const basePos; // position of number that define rectangle - x = row, y = column
     Vector2D pos; // position of top left corner of the rectangle
     Vector2D shape; // x = height, y = width
-    std::vector<Vector2D> prepShapes; // prepared shapes from constructor
 
 public:
-    Rectangle(int basePositionX, int basePositionY, int volume, int maxHeight, int maxWidth);
+    Rectangle(int basePositionX, int basePositionY, int volume);
 
     Vector2D getBasePosition() const;
     Vector2D getPosition() const;
@@ -25,7 +24,6 @@ public:
     bool hasShape() const;
     int getArea() const;
     int getPerimeter() const;
-    std::vector<Vector2D> getPreparedShapes() const;
     
     std::string toString() const;
 };

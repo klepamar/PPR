@@ -27,7 +27,7 @@ private:
     };
 
     int size; // number of elements within the list
-    int areaSum;
+    int areaSum;        
     RectListItem* headItem; // first element - used when deleting the linked list
     RectListItem* tailItem; // last element onto which are further elements attached
     RectListItem* currentItem; // currently evaluated rectangle

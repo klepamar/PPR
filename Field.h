@@ -10,8 +10,8 @@ class FieldStack; // avoid circular dependency
 
 class Field {
 private:
-    int const dimX; // dimensions of the field
-    int const dimY; // dimensions of the field
+    const int dimX; // dimensions of the field
+    const int dimY; // dimensions of the field
     int** field; //representation of the field
     RectList* rects; // rectangles - list of rectangles
     int perSum; // perimetrSum - sum of perimeters of all rectangles initially set to 0

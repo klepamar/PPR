@@ -6,6 +6,7 @@
 using namespace std;
 
 extern bool verbose;
+extern bool verboseStackSize;
 
 FieldStack::FieldStack() {
     this->size = 0;
@@ -36,6 +37,8 @@ FieldStack::~FieldStack() {
 }
 
 void FieldStack::push(Field* field) {
+    if (verbose || verboseStackSize) cout << "Pushing stack: " << this->size << "++" << endl;
+
     // create a new FieldStackItem
     FieldStackItem *newItem = new FieldStackItem(field);
 
@@ -53,15 +56,15 @@ void FieldStack::push(Field* field) {
 }
 
 Field* FieldStack::pop() {
-    if (verbose) cout << "Popping stack:" << endl;
+    if (verbose || verboseStackSize) cout << "Popping stack: " << this->size << "--" << endl;
 
     if (isEmpty()) {
-        if (verbose) cout << "<FIELD>" << endl << "null" << endl << "</FIELD>" << endl;
-        
+        if (verbose) cout << "<FIELDSTACK>" << endl << "null" << endl << "</FIELDSTACK>" << endl;
         return NULL; // make sure you check what you have received from the stack!
     }
 
-    FieldStackItem *retValue = topItem; // FieldStackItem to be returned
+    FieldStackItem *origTopItem = topItem; // FieldStackItem to be returned
+    Field *origTopField = origTopItem->field;
 
     if (topItem->below) // popping element from stack with size > 1
     {
@@ -73,9 +76,10 @@ Field* FieldStack::pop() {
     }
     this->size = this->size - 1;
 
-    if (verbose) cout << retValue->field->toString();
+    origTopItem->field = NULL;
+    delete origTopItem;
 
-    return retValue->field; // return only the field portion of FieldStackItem
+    return origTopField;
 }
 
 bool FieldStack::isEmpty() const {

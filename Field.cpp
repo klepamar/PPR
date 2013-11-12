@@ -69,7 +69,7 @@ void Field::fill(istream &in) {
             field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
 
             if (field[i][j] != 0) { // create new rectangle
-                Rectangle* rect = new Rectangle(i, j, field[i][j], dimX, dimY);
+                Rectangle* rect = new Rectangle(i, j, field[i][j]);
                 rects->append(rect);
             }
         }
@@ -96,7 +96,18 @@ bool Field::solveRectShapes(FieldStack* stack) {
 }
 
 vector<Vector2D> Field::findRectShapes() {
-    vector<Vector2D> shapes = rects->getCurrent()->getPreparedShapes();
+    //vector<Vector2D> shapes = rects->getCurrent()->getPreparedShapes();
+    Rectangle* rect = rects->getCurrent();
+    vector<Vector2D> shapes;
+
+    // Vx,y from N . x*y = area & x <= maxHeight & y <= maxWidth
+    for (int x = 1; x <= rect->getArea() && x <= this->dimX; x++) {
+        for (int y = 1; y <= rect->getArea() && y <= this->dimY; y++) {
+            if (x * y == rect->getArea()) {
+                shapes.push_back(Vector2D(x, y));
+            }
+        }
+    }
 
     if (verbose) {
         cout << "possible shapes: ";
@@ -223,7 +234,7 @@ string Field::toString() const {
     ostringstream ss;
 
     ss << "<FIELD>" << endl;
-    ss << "dimensions: " << Vector2D(dimX, dimY).toDimensionString() << endl;
+    ss << "dimensions: " << Vector2D(dimX, dimY).toDimensionString() << "=" << dimX * dimY << endl;
     ss << "no rectangles: " << rects->getSize() << endl;
     ss << "perimeter sum: " << rects->getPerimeterSum() << endl;
 
@@ -239,9 +250,9 @@ string Field::toString() const {
         for (int j = 0; j < dimY; j++) {
             if (field[i][j]) {
                 if (field[i][j] < 0) { // is color
-                    ss << " " << setw(2) << (char) ((-field[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
+                    ss << setw(3) << (char) ((-field[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
                 } else { // is area
-                    ss << " " << setw(2) << field[i][j] << " │";
+                    ss << setw(3) << field[i][j] << " │";
                 }
             } else { // is empty
                 ss << "    │";

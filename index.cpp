@@ -13,6 +13,7 @@ using namespace std;
 
 const char *fileName = "input.txt";
 bool verbose = false;
+bool verboseStackSize = false;
 
 /**
  * Read data from given file and initialize field.
@@ -63,12 +64,15 @@ void processArguments(int argc, char** argv) {
     for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-s") == 0) {
+            verboseStackSize = true;
         } else if (strcmp(argv[i], "-f") == 0) {
             fileName = argv[i + 1];
             i++;
         } else if (strcmp(argv[i], "-h") == 0) {
             cout << "Usage:" << endl <<
                     "\t-v\t\tfor verbose" << endl <<
+                    "\t-s\t\tfor only stack-pop verbose" <<
                     "\t-f \"file\"\tto specific input file, default is \"input.txt\"" << endl <<
                     "\t-h\t\tfor this help" << endl;
             exit(EXIT_SUCCESS); // clean-up is not necessary, no class object has been created yet
@@ -81,8 +85,11 @@ void processArguments(int argc, char** argv) {
 }
 
 /**
+ * ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > genin.txt; ./ppr -f genin.txt
+ * 
  * Usage:
  *      -v              for verbose 
+ *      -s              for only stack-pop verbose
  *      -f "file"       to specific input file, default is "input.txt"
  *      -h              for this help
  */
@@ -151,7 +158,7 @@ int main(int argc, char** argv) {
                     field = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
                 }
 
-                break;
+                break;  
             }
 
             /*

@@ -7,19 +7,9 @@
 
 using namespace std;
 
-Rectangle::Rectangle(int basePosX, int basePosY, int area, int maxHeight, int maxWidth)
+Rectangle::Rectangle(int basePosX, int basePosY, int area)
 : basePos(basePosX, basePosY), area(area) {
-    /*
-     * Prepare possible shapes.
-     * Vx,y from N . x*y = area & x <= maxHeight & y <= maxWidth
-     */
-    for (int x = 1; x <= area && x <= maxHeight; x++) {
-        for (int y = 1; y <= area && y <= maxWidth; y++) {
-            if (x * y == area) {
-                this->prepShapes.push_back(Vector2D(x, y));
-            }
-        }
-    }
+
 }
 
 Vector2D Rectangle::getBasePosition() const {
@@ -62,26 +52,13 @@ int Rectangle::getPerimeter() const {
     }
 }
 
-vector<Vector2D> Rectangle::getPreparedShapes() const {
-    return prepShapes;
-}
-
 string Rectangle::toString() const {
     ostringstream ss;
 
     ss << "area: " << getArea() << "; " <<
             "basePos: " << getBasePosition().toPointString() << "; " <<
             "pos: " << getPosition().toPointString() << "; " <<
-            "shape: " << getShape().toVectorString() << "; " <<
-            "prepShapes: ";
-    for (int i = 0; i < getPreparedShapes().size(); i++) {
-        ss << getPreparedShapes()[i].toVectorString();
-        if (i != getPreparedShapes().size() - 1) {
-            ss << " ";
-        } else {
-            ss << "; ";
-        }
-    }
-
+            "shape: " << getShape().toVectorString();
+    
     return ss.str();
 }
