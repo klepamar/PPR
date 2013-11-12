@@ -4,16 +4,25 @@
 #include <sstream>
 #include <string>
 #include <string.h>
-#include <ctime>
+#include <stdlib.h>
+#include <stdio.h>
+#include <iomanip>
+#include "mpi.h"
 
 #include "Field.h"
 #include "FieldStack.h"
 
 using namespace std;
 
-const char *fileName = "input.txt";
+/* Global variables */
+#define BUFFER_LENGTH 500 // < 1KB aby se posilalo neblokujicim zpusobem
+#define MASTER 0
+const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku
 bool verbose = false;
 bool verboseStackSize = false;
+int myID = -1; // od 0 do noIDs - 1
+string myPrefix = "";
+int noIDs = -1;
 
 /**
  * Read data from given file and initialize field.
@@ -64,7 +73,7 @@ void processArguments(int argc, char** argv) {
     for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
-        } else if (strcmp(argv[i], "-s") == 0) {
+        } else if (strcmp(argv[i], "-vs") == 0) {
             verboseStackSize = true;
         } else if (strcmp(argv[i], "-f") == 0) {
             fileName = argv[i + 1];
@@ -72,7 +81,7 @@ void processArguments(int argc, char** argv) {
         } else if (strcmp(argv[i], "-h") == 0) {
             cout << "Usage:" << endl <<
                     "\t-v\t\tfor verbose" << endl <<
-                    "\t-s\t\tfor only stack-pop verbose" <<
+                    "\t-vs\t\tfor verbose stack (pushing and popping)" <<
                     "\t-f \"file\"\tto specific input file, default is \"input.txt\"" << endl <<
                     "\t-h\t\tfor this help" << endl;
             exit(EXIT_SUCCESS); // clean-up is not necessary, no class object has been created yet
@@ -85,53 +94,59 @@ void processArguments(int argc, char** argv) {
 }
 
 /**
- * ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > genin.txt; ./ppr -f genin.txt
- * 
- * Usage:
- *      -v              for verbose 
- *      -s              for only stack-pop verbose
- *      -f "file"       to specific input file, default is "input.txt"
- *      -h              for this help
+ * ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
  */
 int main(int argc, char** argv) {
     FieldStack* stack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
     Field* field = NULL;
     Field* bestField = NULL;
-    time_t start, end;
+    double t_start, t_end;
 
-    start = time(NULL);
+    /* start up MPI */
+    MPI_Init(&argc, &argv);
 
-    try {
-        processArguments(argc, argv);
-        initField(field, fileName);
-    } catch (string ex) {
-        cout << "Exception: " << ex << endl;
+    /* find out process rank */
+    MPI_Comm_rank(MPI_COMM_WORLD, &myID);
 
-        delete field; // clean-up
-        delete bestField; // clean-up
-        delete stack; // clean-up
-        exit(EXIT_FAILURE);
+    // find prefix for this process
+    for (int i = 0; i < myID; i++) {
+        myPrefix.append("  ");
+    }
+    ostringstream tmp;
+    tmp << setw(2) << myID;
+    myPrefix.append(tmp.str()).append(": ");
+
+    /* find out number of processes */
+    MPI_Comm_size(MPI_COMM_WORLD, &noIDs);
+
+    /* cekam na spusteni vsech procesu */ // až pak začnu měřit čas
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (myID == MASTER) {
+        /* time measuring - start */
+        t_start = MPI_Wtime();
+
+        // inicializace
+        try {
+            processArguments(argc, argv);
+            initField(field, fileName);
+        } catch (string ex) {
+            cout << "Exception: " << ex << endl;
+
+            delete field; // clean-up
+            delete bestField; // clean-up
+            delete stack; // clean-up
+            exit(EXIT_FAILURE);
+        }
+
+        cout << "---------- TASK ----------" << endl;
+        cout << field->toString();
     }
 
-    cout << "---------- TASK ----------" << endl;
-    cout << field->toString();
+    cout << myPrefix << "hlasim se" << endl;
 
-    /* test */
-
-    /* ALGORITMUS Z EDUXU 
-     * 
-    pro všechna nenulová čísla v mřížce, opakuj
-        vyber (zatím nepoužité) nenulové číslo x z mřížky
-        pro všechny čísla rx a ry (rozměry obdélníku) takové, že rx*ry=x dělej:
-        pro všechny px a py (pozice leveho horniho rohu obdélniku) takové, že px+rx < = a a py+ry < = b dělej
-            pokud překryv s předchozímí obdélníky, zkus jiné px a py
-            obdélník musí obsahovat právě jedno nenulové číslo x, jinak zkus jiné px a py
-            pokud žádné px a py nevyhovuje ⇒ návrat.
-            pokud px a py nalezeno a jednalo se o poslední obdélník ⇒ nalezeno řešení
-    Pokud prohledán stavový prostor, ⇒ nemá řešení.
-     */
-
-    while (true) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
+    /* ALGORITMUS */
+    while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
             /*
              * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
@@ -158,7 +173,7 @@ int main(int argc, char** argv) {
                     field = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
                 }
 
-                break;  
+                break;
             }
 
             /*
@@ -205,37 +220,31 @@ int main(int argc, char** argv) {
             // parallel has to ask other processors
         }
     }
+    
+    cout << myPrefix << "koncim" << endl;
 
-    end = time(NULL);
+    /* cekam na dokonceni vypoctu */
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    cout << "---------- SOLUTION ----------" << endl;
-    if (bestField != NULL) {
-        cout << bestField->toString();
-    } else {
-        cout << "Solution does not exist!" << endl; // předpokládám že by nemělo nastat pokud projde podmínkou v initField
+    if (myID == MASTER) {
+        /* time measuring - stop */
+        t_end = MPI_Wtime();
+
+        cout << "---------- SOLUTION ----------" << endl;
+        if (bestField != NULL) {
+            cout << bestField->toString();
+        } else {
+            cout << "Solution does not exist!" << endl; // muze nastat
+        }
+        cout << myPrefix << "Calculation took " << (t_end - t_start) << " sec." << endl;
     }
-
-    cout << "Calculation took " << difftime(end, start) << " sec." << endl;
 
     delete field; // clean-up
     delete bestField; // clean-up
     delete stack; // clean-up
-    exit(EXIT_SUCCESS);
 
-    /* POZNÁMKY
-     * 
-     * řešit ořezávání pomocí nejlepšího řešení/absolutně nej řešení, aktuální testovat jestli už náhodou není horší než zatím nejlepší - asi lze úplně vynechat nepřinese to podle mě moc velké zrychlení
-     * 
-     * není tam nikce moc ošetření na NULL pointery
-     * 
-     * Mít správně destruktory,
-     * 
-     * Pro nějaký to lepší půlení zásobníku bysme mohli ukládat číslo kolik pod sebou ještě má nevyřešenejch Rect a tím by se to dalo docela hezky půlit. Vědět kolik je celkovej součet a potom jít odzadu dokud ho nepřesáhnu.
-     * 
-     * Udělat to skutečně jako stack. dole budou největší úlohy a ty budu uřezávat a posílat jinému procesoru
-     * je to lepší asi protože budu rychlejc získávat řešení a můžu tak líp ořezávat ty ostatní případně skončit pokud najdu nejlepší
-     * 
-     * Nešlo by nějak pamatovat si toho míň než celej Field? Asi zbytečný to řešit pokud nebude problém s pamětí
-     * 
-     */
+    /* shut down MPI */
+    MPI_Finalize();
+
+    exit(EXIT_SUCCESS);
 }
