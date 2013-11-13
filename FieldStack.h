@@ -4,6 +4,8 @@
 #include "Field.h" 
 #include <cstdlib>
 
+class FieldStackItem;
+
 /**
  * ==3==
  * ==2==
@@ -48,6 +50,10 @@ public:
     bool isEmpty() const;
 
     std::string toString() const;
+
+	FieldStack* divideStack ();
+	FieldStackItem* findNewBottomItem () const;
+	void recalculateSize ();
 
     void pack(void *outbuffer, int bufferSize, int *bufferPosition);
     static FieldStack* unpack(void *inbuffer, int bufferSize, int *bufferPosition);

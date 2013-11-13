@@ -125,6 +125,88 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
     }
 }
 
+FieldStack* FieldStack::divideStack ()
+{
+	// return new stack as a result of the procedure and also change current stack
+	FieldStack *newStack = new FieldStack ();
+	
+	// the procedure must be called when multiple elements are present in the stack (!); it does not make sense to divide a stack with 1 item
+	if (this->size <= 1)
+	{
+		// constructor of FieldStack sets both pointers to NULL, so you can return the new stack directly
+		return newStack;
+	}
+	
+	// find new bottom item of the original stack & top item of the new stack
+	FieldStackItem *stackBottom = findNewBottomItem ();
+	FieldStackItem *stackTop = stackBottom->below;
+	
+	// remove the connection between stackBottom and stackTop items
+	stackBottom->below = NULL;
+	stackTop->upper = NULL;
+	
+	// set pointers of the new stack
+	newStack->topItem = stackTop;
+	newStack->bottomItem = this->bottomItem;
+
+	// change bottom pointer for the original stack
+	this->bottomItem = stackBottom;
+	
+	// change number of elements within both stacks
+	this->recalculateSize();
+	newStack->recalculateSize();
+	
+	return newStack;
+}
+
+void FieldStack::recalculateSize ()
+{
+	int sizeTemp=0;
+	FieldStackItem* current = this->topItem;
+	while (current)
+	{
+		current = current->below;
+		sizeTemp++;
+	}
+	this->size = sizeTemp;
+}
+
+FieldStack::FieldStackItem* FieldStack::findNewBottomItem () const
+{
+	// function should run with 2+ elements within the stack
+	// lowest rank => highest priority (=rank of rectangle which is being processed in the field at the bottom of the stack)
+	int bottomRank = this->bottomItem->field->getRectangles()->getCurrentId();
+	
+	// hladame pocet elementov, ktorych rank je zhodny s rankom fieldu ulozeneho na spodku stacku
+	int equalRankedElements = 0;
+	
+	FieldStackItem* current = this->bottomItem;
+	while (current)
+	{
+		if (current->field->getRectangles()->getCurrentId() == bottomRank)
+		{
+			equalRankedElements++;
+			current = current->upper;
+		}
+		else break;
+	}
+	
+	// horna cela cast poctu prvkov najnizsieho ranku bude zakladom noveho stacku; "borderRank" potom udava pocet prvkov v novom stacku
+	int borderRank = (equalRankedElements+1)/2;
+	int tempRank = 0;
+	
+	// iterate through the stack from the bottom item to find the border element
+	current = this->bottomItem;
+	while (tempRank < borderRank)
+	{
+		current = current->upper;
+		tempRank++;
+	}
+	
+	//current vzdy ukazuje na bottomItem povodneho stacku
+	return current;
+}
+
 FieldStack* FieldStack::unpack(void *buffer, int bufferSize, int *bufferPos) {
     int size;
     FieldStack* fieldStack;
