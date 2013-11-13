@@ -8,6 +8,7 @@
 using namespace std;
 
 extern bool verbose;
+extern string myPrefix;
 
 RectList::RectList() {
     this->size = 0;
@@ -80,6 +81,10 @@ Rectangle* RectList::getCurrent() const {
 }
 
 int RectList::getCurrentId() const {
+    if(currentItem == NULL) {
+        return -1; // beyond end
+    }
+    
     return currentItem->id;
 }
 
@@ -100,7 +105,9 @@ void RectList::toFirst() {
 }
 
 void RectList::toUnpositioned() {
-    while (currentItem->rect->hasPosition()) { // pokud je uz vyreseny (ma pozici) posunu se na dalsi
+    toFirst();
+
+    while (currentItem != NULL && currentItem->rect->hasPosition()) { // pokud neni na konci a je uz vyreseny (ma pozici) posunu se na dalsi
         toNext();
     }
 }
@@ -135,8 +142,14 @@ int RectList::getPerimeterSum() const {
 string RectList::toString() const {
     ostringstream ss;
 
+    if (isEmpty()) {
+        ss << "<RECTLIST>" << endl << "empty" << endl << "</RECTLIST>" << endl;
+        return ss.str();
+    }
+
     ss << "<RECTLIST>" << endl <<
-            "currentItemId: " << currentItem->id << endl;
+            "size: " << size << endl <<
+            "currentItemId: " << getCurrentId() << endl;
     RectListItem* rectItem = headItem;
     while (rectItem != NULL) {
         if (rectItem == headItem) {
@@ -177,14 +190,14 @@ RectList* RectList::unpack(void *buffer, int bufferSize, int *bufferPos) {
     Rectangle* rect;
 
     MPI_Unpack(buffer, bufferSize, bufferPos, &size, 1, MPI_INT, MPI_COMM_WORLD); // size
-
+    
     rectList = new RectList(); // sestaveni
     for (int i = 0; i < size; i++) {
         rect = Rectangle::unpack(buffer, bufferSize, bufferPos);
         rectList->append(rect); // headItem, tailItem, rectItems
     }
-
-    rectList->toUnpositioned(); // currentItem
+    
+    rectList->toUnpositioned(); // currentItem je vzdy prvni bez pozice
 
     return rectList;
 }

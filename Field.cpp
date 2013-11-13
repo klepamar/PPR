@@ -14,34 +14,34 @@ extern bool verbose;
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
     this->rects = new RectList(); // create an empty RectList
-    this->field = new int*[this->dimX];
+    this->fieldArray = new int*[this->dimX];
     for (int i = 0; i < this->dimX; i++) {
-        field[i] = new int[this->dimY];
+        fieldArray[i] = new int[this->dimY];
     }
 }
 
 Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
     perSum = orig.perSum; // copy simple element
     this->rects = new RectList(*(orig.rects)); //call copy-constructor
-    this->field = new int*[this->dimX]; //create a new field
+    this->fieldArray = new int*[this->dimX]; //create a new field
     for (int i = 0; i < this->dimX; i++) {
-        field[i] = new int[this->dimY];
+        fieldArray[i] = new int[this->dimY];
     }
     //copy values stored in the original field
     for (int i = 0; i < dimX; i++) {
         for (int j = 0; j < dimY; j++) {
-            this->field[i][j] = orig.field[i][j];
+            this->fieldArray[i][j] = orig.fieldArray[i][j];
         }
     }
 }
 
 Field::~Field() {
     for (int i = 0; i < dimX; i++) {
-        delete[] field[i]; // delete array of int
-        field[i] = NULL;
+        delete[] fieldArray[i]; // delete array of int
+        fieldArray[i] = NULL;
     }
-    delete[] field; // delete array of int*
-    field = NULL;
+    delete[] fieldArray; // delete array of int*
+    fieldArray = NULL;
 
     delete rects; // call destructor of RectList
     rects = NULL;
@@ -67,10 +67,10 @@ void Field::fill(istream &in) {
         for (int j = 0; j < dimY; j++) {
             in >> inputElement;
             currentElement = atoi(inputElement.c_str()); // atoi returns 0 if invalid value found/zero discovered -> invalid value discarded and silently ignored
-            field[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
+            fieldArray[i][j] = currentElement; // place 0 into object variable 'field' so that it is not undefined or the value itself
 
-            if (field[i][j] != 0) { // create new rectangle
-                Rectangle* rect = new Rectangle(i, j, field[i][j]);
+            if (fieldArray[i][j] != 0) { // create new rectangle
+                Rectangle* rect = new Rectangle(i, j, fieldArray[i][j]);
                 rects->append(rect);
             }
         }
@@ -171,8 +171,8 @@ vector<Vector2D> Field::findRectPositions() {
         cout << "max of top-left corner: " << Vector2D(bottom, right).toPointString() << endl;
     }
 
-    int tmp = field[baseX][baseY];
-    field[baseX][baseY] = 0; // easier checking
+    int tmp = fieldArray[baseX][baseY];
+    fieldArray[baseX][baseY] = 0; // easier checking
     for (int i = top; i <= bottom; i++) {
         for (int j = left; j <= right; j++) { // i, j - jsou všechny možné pozice horního levého rohu takové aby obdélník stále překríval svojí basePos a zároveň aby nepřesahoval z obdélníku ven
 
@@ -180,7 +180,7 @@ vector<Vector2D> Field::findRectPositions() {
             for (int k = 0; k < shapeX; k++) {
                 for (int l = 0; l < shapeY; l++) { // k, l - pozice jednoho políčka obdélníku s danou pozicí (i, j) ktere je nutné testovat zda neprekryvají nenulové pole
                     // check
-                    if (/*i + k >= dimX || i + k >= dimY || - neni nutné díky bottom a right zarazce */ field[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
+                    if (/*i + k >= dimX || i + k >= dimY || - neni nutné díky bottom a right zarazce */ fieldArray[i + k][j + l] != 0) { // cover non-zero cell => it is not allowable position
                         flag = false;
                         l = shapeY; // break inner for (where l is control variable)
                         k = shapeX; // break outer for (where k is control variable)
@@ -193,7 +193,7 @@ vector<Vector2D> Field::findRectPositions() {
             flag = true; // reset flag
         }
     }
-    field[baseX][baseY] = tmp; // restore zeroed basePos
+    fieldArray[baseX][baseY] = tmp; // restore zeroed basePos
 
     if (verbose) {
         cout << "possible positions: ";
@@ -216,7 +216,7 @@ void Field::colorField(Rectangle* rect) {
         int color = -rects->getCurrentId();
         for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
             for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
-                field[i][j] = color;
+                fieldArray[i][j] = color;
             }
         }
         color++;
@@ -225,7 +225,7 @@ void Field::colorField(Rectangle* rect) {
         perSum += rect->getPerimeter();
 
     } else { // just write area
-        field[rect->getBasePosition().getX()][rect->getBasePosition().getY()] = rect->getArea();
+        fieldArray[rect->getBasePosition().getX()][rect->getBasePosition().getY()] = rect->getArea();
     }
 
     if (verbose) cout << this->toString();
@@ -256,11 +256,11 @@ string Field::toString() const {
     for (int i = 0; i < dimX; i++) {
         ss << "│";
         for (int j = 0; j < dimY; j++) {
-            if (field[i][j]) {
-                if (field[i][j] < 0) { // is color
-                    ss << setw(3) << (char) ((-field[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
+            if (fieldArray[i][j]) {
+                if (fieldArray[i][j] < 0) { // is color
+                    ss << setw(3) << (char) ((-fieldArray[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
                 } else { // is area
-                    ss << setw(3) << field[i][j] << " │";
+                    ss << setw(3) << fieldArray[i][j] << " │";
                 }
             } else { // is empty
                 ss << "    │";
@@ -310,6 +310,12 @@ Field * Field::unpack(void *buffer, int bufferSize, int *bufferPos) {
     field = new Field(Vector2D(dimX, dimY)); // sestaveni
     field->rects = RectList::unpack(buffer, bufferSize, bufferPos); // rects
 
+    for(int i = 0; i < field->dimX; i++) { // vynulovat fiedlAray protoze nedokazu rict kde nuly a kde cisla, v ostatnich pripadech to kopiruju z jinyho fieldArray takze to udelam v case a*b
+        for(int j = 0; j < field->dimY; j++) {
+            field->fieldArray[i][j] = 0; // vynulovani
+        }
+    }
+    
     field->rects->toFirst(); // na zacatek
     while(field->rects->getCurrent() != NULL) { // vsechny projit
         field->colorField(field->rects->getCurrent()); // perSum, field

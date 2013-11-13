@@ -15,7 +15,7 @@
 using namespace std;
 
 /* Global variables */
-#define BUFFER_LENGTH 500 // < 1KB aby se posilalo neblokujicim zpusobem
+#define BUFFER_LENGTH 9999 // < 1KB aby se posilalo neblokujicim zpusobem
 #define MASTER 0
 const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku
 bool verbose = false;
@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
     Field* field = NULL;
     Field* bestField = NULL;
     double t_start, t_end;
+    char buffer[BUFFER_LENGTH];
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -109,12 +110,12 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &myID);
 
     // find prefix for this process
-    for (int i = 0; i < myID; i++) {
-        myPrefix.append("  ");
+    stringstream tmp;
+    for (int i = 0; i <= myID; i++) {
+        tmp << "  ";
     }
-    ostringstream tmp;
-    tmp << setw(2) << myID;
-    myPrefix.append(tmp.str()).append(": ");
+    tmp << setw(2) << myID << ": ";
+    myPrefix = tmp.str();
 
     /* find out number of processes */
     MPI_Comm_size(MPI_COMM_WORLD, &noIDs);
@@ -138,13 +139,126 @@ int main(int argc, char** argv) {
             delete stack; // clean-up
             exit(EXIT_FAILURE);
         }
-
+        /*
         cout << "---------- TASK ----------" << endl;
         cout << field->toString();
+         */
     }
-    
-    /* test komunikace */
-    
+
+    /* TEST KOMUNIKACE */
+    if (true) {
+        if (myID == MASTER) {
+            int pos = 0;
+
+            // vytvorim objekty simulujici praci algoritmu a poslu je
+            // POZOR Pack a predevsim Unpack je nachylny na to aby byla data konzistentni (coz pri vytvareni v algoritmu jsou)
+            // napriklad RL s ukazatelem current na jiz vyreseny (ma pozici) R se deserializuje na RL s ukazatelem current na prvni R bez pozice
+            FieldStack* FSout = new FieldStack();
+
+            // pozmenim kopie F
+            Field* F0 = new Field(*field); // nezmenena = puvodni
+            
+            Field* F1 = new Field(*field); // tvar 1., bez pozice
+            F1->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
+            
+            Field* F2 = new Field(*field); // tvar 1., bez pozice
+            F2->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
+
+            Field* F3 = new Field(*field); // tvar 1., pozice 1., posun na dalsi
+            F3->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
+            F3->getRectangles()->getCurrent()->setPosition(Vector2D(0, 0));
+            F3->getRectangles()->toNext();
+
+            // dam je do stacku
+            FSout->push(F0);
+            FSout->push(F1);
+            FSout->push(F2);
+            FSout->push(F3);
+
+            // zapackuju a odeslu jednicce s tagem 1
+            FSout->pack(buffer, BUFFER_LENGTH, &pos);
+            MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
+
+            cout << myPrefix << "odeslal jsem: " << endl;
+            cout << FSout->toString();
+
+            // smazu ho od sebe i se vsim co ma v sobe
+            delete FSout;
+        } else if (myID == 1) {
+            MPI_Status status;
+            int pos = 0;
+            FieldStack* FSin;
+
+            // prijmu od kohokoliv jakejkoliv tag a rozpackuju
+            MPI_Recv(buffer, BUFFER_LENGTH, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            FSin = FieldStack::unpack(buffer, BUFFER_LENGTH, &pos);
+
+            cout << myPrefix << "prijmul jsem: " << endl;
+            cout << FSin->toString();
+        } else {
+            cout << myPrefix << "Nejsem Master ani Jednicka" << endl;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+    /* HLEDANI CHYBY */
+    if (false) {
+        if (myID == MASTER) {
+            int pos = 0;
+
+            // vytvorit testovaci objekty
+            Field* F1out = new Field(*field);
+            
+            Field* F2out = new Field(*field);
+            F2out->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
+            F2out->getRectangles()->getCurrent()->setPosition(Vector2D(1, 1));
+            
+            FieldStack* FSout = new FieldStack();
+            //FSout->push(F1out);
+            FSout->push(F2out);
+
+
+            // zapackuju a odeslu jednicce s tagem 1
+            FSout->pack(buffer, BUFFER_LENGTH, &pos);
+            MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
+
+            cout << myPrefix << "odeslal jsem: " << endl;
+            cout << FSout->toString();
+
+            // smazu ho od sebe
+            delete FSout;
+        } else if (myID == 1) {
+            MPI_Status status;
+            int pos = 0;
+            FieldStack* in;
+
+            // prijmu od kohokoliv jakejkoliv tag a rozpackuju
+            MPI_Recv(buffer, BUFFER_LENGTH, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            in = FieldStack::unpack(buffer, BUFFER_LENGTH, &pos);
+
+            cout << myPrefix << "prijmul jsem: " << endl;
+            cout << in->toString();
+        } else {
+            cout << myPrefix << "Nejsem Master ani Jednicka" << endl;
+        }
+    }
+
+
+
+
+
+
+
+
+
 
     /* ALGORITMUS */
     while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
@@ -220,6 +334,8 @@ int main(int argc, char** argv) {
             break; // sequential
             // parallel has to ask other processors
         }
+        
+        /* Test na příchod zpráv */
     }
 
     /* cekam na dokonceni vypoctu */
@@ -229,12 +345,14 @@ int main(int argc, char** argv) {
         /* time measuring - stop */
         t_end = MPI_Wtime();
 
+        /*
         cout << "---------- SOLUTION ----------" << endl;
         if (bestField != NULL) {
             cout << bestField->toString();
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
+         */
         cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
     }
 

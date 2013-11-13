@@ -92,11 +92,16 @@ std::string FieldStack::toString() const {
     ostringstream ss;
     FieldStackItem *tmp = this->topItem;
 
+    if (isEmpty()) {
+        ss << "<FIELDSTACK>" << endl << "enpty" << endl << "</FIELDSTACK>" << endl;
+        return ss.str();
+    }
+
     ss << "<FIELDSTACK>" << endl;
     for (int i = 0; tmp != NULL; i++) {
-        ss << "<" << size - 1 << ">" << endl;
+        ss << "<" << (size - i - 1) << ">" << endl;
         ss << tmp->field->toString();
-        ss << "</" << size - 1 << ">" << endl;
+        ss << "</" << (size - i - 1) << ">" << endl;
         tmp = tmp->below;
     }
     ss << "</FIELDSTACK>" << endl;
