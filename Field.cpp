@@ -10,6 +10,7 @@
 using namespace std;
 
 extern bool verbose;
+extern string myPrefix;
 
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
     this->perSum = 0;
@@ -208,22 +209,20 @@ vector<Vector2D> Field::findRectPositions() {
     return poss;
 }
 
-void Field::colorField(Rectangle* rect) {
+void Field::colorField(Rectangle* rect, int color) {
     if (verbose) cout << "ColoringField:" << endl;
 
-    if (rect->hasPosition()) { // true coloring area
-        // color field
-        int color = -rects->getCurrentId();
+    if (rect->hasPosition()) { // true coloring of area
+        
         for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
             for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
                 fieldArray[i][j] = color;
             }
         }
-        color++;
-
+        
         // add perimeter
         perSum += rect->getPerimeter();
-
+        
     } else { // just write area
         fieldArray[rect->getBasePosition().getX()][rect->getBasePosition().getY()] = rect->getArea();
     }
@@ -232,7 +231,7 @@ void Field::colorField(Rectangle* rect) {
 }
 
 void Field::colorField() {
-    colorField(rects->getCurrent());
+    colorField(rects->getCurrent(), -1 * rects->getCurrentId());
 }
 
 /*
@@ -318,7 +317,7 @@ Field * Field::unpack(void *buffer, int bufferSize, int *bufferPos) {
     
     field->rects->toFirst(); // na zacatek
     while(field->rects->getCurrent() != NULL) { // vsechny projit
-        field->colorField(field->rects->getCurrent()); // perSum, field
+        field->colorField(field->rects->getCurrent(), -1 * field->rects->getCurrentId()); // perSum, fieldArray
         field->rects->toNext();
     }
     field->rects->toUnpositioned(); // vratit se na current;

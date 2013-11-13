@@ -31,7 +31,7 @@ public:
     std::vector<Vector2D> findRectShapes();
     bool solveRectPositions(FieldStack* stack);
     std::vector<Vector2D> findRectPositions();
-    void colorField(Rectangle* rectangle);
+    void colorField(Rectangle* rectangle, int color);
     void colorField();
 
     std::string toString() const;

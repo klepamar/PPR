@@ -167,6 +167,7 @@ int main(int argc, char** argv) {
             Field* F3 = new Field(*field); // tvar 1., pozice 1., posun na dalsi
             F3->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
             F3->getRectangles()->getCurrent()->setPosition(Vector2D(0, 0));
+            F3->colorField();
             F3->getRectangles()->toNext();
 
             // dam je do stacku
@@ -184,6 +185,7 @@ int main(int argc, char** argv) {
 
             // smazu ho od sebe i se vsim co ma v sobe
             delete FSout;
+            
         } else if (myID == 1) {
             MPI_Status status;
             int pos = 0;
@@ -195,70 +197,11 @@ int main(int argc, char** argv) {
 
             cout << myPrefix << "prijmul jsem: " << endl;
             cout << FSin->toString();
+            
         } else {
             cout << myPrefix << "Nejsem Master ani Jednicka" << endl;
         }
     }
-
-
-
-
-
-
-
-
-
-
-    /* HLEDANI CHYBY */
-    if (false) {
-        if (myID == MASTER) {
-            int pos = 0;
-
-            // vytvorit testovaci objekty
-            Field* F1out = new Field(*field);
-            
-            Field* F2out = new Field(*field);
-            F2out->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
-            F2out->getRectangles()->getCurrent()->setPosition(Vector2D(1, 1));
-            
-            FieldStack* FSout = new FieldStack();
-            //FSout->push(F1out);
-            FSout->push(F2out);
-
-
-            // zapackuju a odeslu jednicce s tagem 1
-            FSout->pack(buffer, BUFFER_SIZE, &pos);
-            MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
-
-            cout << myPrefix << "odeslal jsem: " << endl;
-            cout << FSout->toString();
-
-            // smazu ho od sebe
-            delete FSout;
-        } else if (myID == 1) {
-            MPI_Status status;
-            int pos = 0;
-            FieldStack* in;
-
-            // prijmu od kohokoliv jakejkoliv tag a rozpackuju
-            MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            in = FieldStack::unpack(buffer, BUFFER_SIZE, &pos);
-
-            cout << myPrefix << "prijmul jsem: " << endl;
-            cout << in->toString();
-        } else {
-            cout << myPrefix << "Nejsem Master ani Jednicka" << endl;
-        }
-    }
-
-
-
-
-
-
-
-
-
 
     /* ALGORITMUS */
     while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)

@@ -89,7 +89,7 @@ int RectList::getCurrentId() const {
 }
 
 void RectList::append(Rectangle* rect) {
-    RectListItem* newItem = new RectListItem(rect, size); // create a new item
+    RectListItem* newItem = new RectListItem(rect, size + 1); // create a new item
     if (isEmpty()) {
         headItem = newItem; // remember firstItem so that destructor can properly delete all elements of the list
         currentItem = newItem; // current & tail items will correspond to the only item in the list
