@@ -144,6 +144,87 @@ int main(int argc, char** argv) {
         cout << field->toString();
          */
     }
+    
+    /* PARALELNY ALGORITMUS PODLA EDUXU */
+    /*
+     * pesek white = color unchanged
+     * pesek black = color has been changed
+     * 
+     * master provides some work for every CPU and sends initial white pesek
+     * for all fields in the local stack
+     * {
+     *    for current DFS
+     *    {
+     *       process for all shapes x,y
+     *       process for all positions
+     *    }
+     * 	  stack->pop (ask for new field from the stack)
+     *    for every n-th occurrence (n in between 10..100)
+     *    {
+     * 	     MPI_Iprobe (verify no message has been received)
+     * 		 if (message received)
+     *       {
+     * 		    case (asked to provide work for another CPU)
+     * 			{
+     * 				if (my stack contains at least 2 elements)
+     * 				{
+     * 					divideStack()
+     * 					MPI_Send (new Stack)
+     * 				}
+     * 				else
+     * 				{
+     * 					stack cannot be divided
+     * 					MPI_Send (try another CPU)
+     * 				}
+     * 			}
+     * 			case (pesek received)
+     * 			{
+     * 				if (master)
+     * 				{
+     * 					if (pesek white)
+     * 					{
+     * 						process rest of my stack
+     * 						MPI_Send (finalise the end of computation for all other CPUs)
+     * 					}
+     * 					else (pesek black)
+     * 					{
+     * 						MPI_Send (new pesek to all CPUs of white color)
+     * 					}
+     * 				}
+     * 				else (non-master)
+     * 				{
+     *     				if (local stack empty && received pesek is white)
+     * 						MPI_Send (white pesek)
+     * 					else (=my stack is not empty || another CPU has already changed pesek to black)
+     * 						MPI_Send (black pesek) 
+     * 				}
+     * 			}
+     * 			case (finish detected by P0)
+     * 			{
+     * 				if (processor ID != 0)
+     *	 				MPI_Send (best solution to P0)
+     * 			}
+     * 		 }
+     * 		 else (no message received)
+     * 		 {
+     * 		    if (local stack empty)
+     * 			{
+     * 			   choose random CPU asking him for some work
+     * 			   blocking MPI_Recv
+     * 			   processor received stack
+     * 			   continue with the outer 'for' loop
+     * 			}
+     * 			else (local stack not empty)
+     * 			{
+     * 			   continue with the outer 'for' loop
+     * 			}
+     * 		 }
+     *    }
+     * }     
+     * 
+     * 
+    */
+    
 
     /* TEST KOMUNIKACE */
     if (true) {
