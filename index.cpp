@@ -15,7 +15,7 @@
 using namespace std;
 
 /* Global variables */
-#define BUFFER_LENGTH 9999 // < 1KB aby se posilalo neblokujicim zpusobem
+#define BUFFER_SIZE 999 // < 1KB aby se posilalo neblokujicim zpusobem
 #define MASTER 0
 const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku
 bool verbose = false;
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     Field* field = NULL;
     Field* bestField = NULL;
     double t_start, t_end;
-    char buffer[BUFFER_LENGTH];
+    char buffer[BUFFER_SIZE];
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     // find prefix for this process
     stringstream tmp;
     for (int i = 0; i <= myID; i++) {
-        tmp << "  ";
+        tmp << "--";
     }
     tmp << setw(2) << myID << ": ";
     myPrefix = tmp.str();
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
             F2->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
 
             Field* F3 = new Field(*field); // tvar 1., pozice 1., posun na dalsi
-            F3->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
+            F3->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
             F3->getRectangles()->getCurrent()->setPosition(Vector2D(0, 0));
             F3->getRectangles()->toNext();
 
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
             FSout->push(F3);
 
             // zapackuju a odeslu jednicce s tagem 1
-            FSout->pack(buffer, BUFFER_LENGTH, &pos);
+            FSout->pack(buffer, BUFFER_SIZE, &pos);
             MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
 
             cout << myPrefix << "odeslal jsem: " << endl;
@@ -190,8 +190,8 @@ int main(int argc, char** argv) {
             FieldStack* FSin;
 
             // prijmu od kohokoliv jakejkoliv tag a rozpackuju
-            MPI_Recv(buffer, BUFFER_LENGTH, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            FSin = FieldStack::unpack(buffer, BUFFER_LENGTH, &pos);
+            MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            FSin = FieldStack::unpack(buffer, BUFFER_SIZE, &pos);
 
             cout << myPrefix << "prijmul jsem: " << endl;
             cout << FSin->toString();
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
 
 
             // zapackuju a odeslu jednicce s tagem 1
-            FSout->pack(buffer, BUFFER_LENGTH, &pos);
+            FSout->pack(buffer, BUFFER_SIZE, &pos);
             MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
 
             cout << myPrefix << "odeslal jsem: " << endl;
@@ -241,8 +241,8 @@ int main(int argc, char** argv) {
             FieldStack* in;
 
             // prijmu od kohokoliv jakejkoliv tag a rozpackuju
-            MPI_Recv(buffer, BUFFER_LENGTH, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            in = FieldStack::unpack(buffer, BUFFER_LENGTH, &pos);
+            MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            in = FieldStack::unpack(buffer, BUFFER_SIZE, &pos);
 
             cout << myPrefix << "prijmul jsem: " << endl;
             cout << in->toString();

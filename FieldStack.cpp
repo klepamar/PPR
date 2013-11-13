@@ -8,6 +8,7 @@ using namespace std;
 
 extern bool verbose;
 extern bool verboseStackSize;
+extern string myPrefix;
 
 FieldStack::FieldStack() {
     this->size = 0;
@@ -120,7 +121,7 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
     FieldStackItem* tmp = bottomItem;
     while (tmp != NULL) {
         tmp->field->pack(buffer, bufferSize, bufferPos);
-        tmp = topItem->upper;
+        tmp = tmp->upper;
     }
 }
 
