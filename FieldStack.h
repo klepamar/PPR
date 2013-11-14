@@ -47,7 +47,9 @@ public:
 
     void push(Field* field);
     Field* pop();
+    Field* popBottom();
     bool isEmpty() const;
+    int getSize() const;
 
     std::string toString() const;
 

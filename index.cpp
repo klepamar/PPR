@@ -8,28 +8,34 @@
 #include <stdio.h>
 #include <iomanip>
 #include "mpi.h"
+#include <climits>
 
 #include "Field.h"
 #include "FieldStack.h"
 
 using namespace std;
 
-/* Global variables */
-#define BUFFER_SIZE 999 // < 1KB aby se posilalo neblokujicim zpusobem
+/* globals and defines */
+#define BUFFER_SIZE 1024 // <= 1KB aby se posilalo neblokujicim zpusobem
+#define WORK_BUFFER_SIZE 5120
+
+#define MSG_WORK_REQUEST 1000
+#define MSG_WORK_SENT    1001
+#define MSG_WORK_NOWORK  1002
+#define MSG_TOKEN        1003
+#define MSG_FINISH       1004
+
+const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku, idealni aby normalne cetl ze vstupu a jen prepinacem ze souboru
+bool verbose = false; // prepinac -v
+bool verboseStackSize = false; // prepinac -vs
+bool verboseProcessCommunication = true; // prepinac -vc
+
 #define MASTER 0
-const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku
-bool verbose = false;
-bool verboseStackSize = false;
-int myID = -1; // od 0 do noIDs - 1
+int myID = -1; // od 0 do noIDs-1
 string myPrefix = "";
 int noIDs = -1;
 
-/**
- * Read data from given file and initialize field.
- * @param field
- * @param fileName
- * @return status
- */
+/* Read data from given file and initialize given field. */
 void initField(Field* &field, const char* fileName) {
     int a, b; // a, b - dimension of field
     int n; // number of non-zero numbers
@@ -69,12 +75,15 @@ void initField(Field* &field, const char* fileName) {
     }
 }
 
+/* Read arguements and process them */
 void processArguments(int argc, char** argv) {
     for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-vs") == 0) {
             verboseStackSize = true;
+        } else if (strcmp(argv[i], "-vc") == 0) {
+            verboseProcessCommunication = true;
         } else if (strcmp(argv[i], "-f") == 0) {
             fileName = argv[i + 1];
             i++;
@@ -94,14 +103,21 @@ void processArguments(int argc, char** argv) {
 }
 
 /**
- * ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
+ * 
+ * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
+ * 
  */
 int main(int argc, char** argv) {
     FieldStack* stack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
     Field* field = NULL;
     Field* bestField = NULL;
+
     double t_start, t_end;
     char buffer[BUFFER_SIZE];
+    int pos = 0;
+    MPI_Status status;
+
+    bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -112,18 +128,19 @@ int main(int argc, char** argv) {
     // find prefix for this process
     stringstream tmp;
     for (int i = 0; i <= myID; i++) {
-        tmp << "--";
+        tmp << "    ";
     }
-    tmp << setw(2) << myID << ": ";
+    tmp << myID << ": ";
     myPrefix = tmp.str();
 
     /* find out number of processes */
     MPI_Comm_size(MPI_COMM_WORLD, &noIDs);
 
-    /* cekam na spusteni vsech procesu */ // až pak začnu měřit čas
+    /* waiting for all process, then start */
     MPI_Barrier(MPI_COMM_WORLD);
-
-    if (myID == MASTER) {
+    
+    /* master load data, slaves wait for data */
+    if (myID == MASTER) { // master load input data and initialize task
         /* time measuring - start */
         t_start = MPI_Wtime();
 
@@ -139,12 +156,22 @@ int main(int argc, char** argv) {
             delete stack; // clean-up
             exit(EXIT_FAILURE);
         }
-        /*
-        cout << "---------- TASK ----------" << endl;
+        
+        cout << "-------------------- TASK --------------------" << endl;
         cout << field->toString();
-         */
+        cout << "-------------------- /TASK --------------------" << endl;
+        
+    } else { // slaves wait (blocking way) for first data from master
+        if(verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
+        
+        MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_SENT, MPI_COMM_WORLD, &status);
+        pos = 0;
+        field = Field::unpack(buffer, BUFFER_SIZE, &pos);
+
+        if(verbose || verboseProcessCommunication) cout << myPrefix << "Recieved start Field." << endl;
     }
-    
+
+
     /* PARALELNY ALGORITMUS PODLA EDUXU */
     /*
      * pesek white = color unchanged
@@ -166,7 +193,7 @@ int main(int argc, char** argv) {
      *       {
      * 		    case (asked to provide work for another CPU)
      * 			{
-     * 				if (my stack contains at least 2 elements)
+     * 				if (my stack contains any element of level i am allow to send) // napriklad posledních k levelu nema cenu pprotoze jsou to uz opravdu maly ukoly (DEFINE a experimentovat)
      * 				{
      * 					divideStack()
      * 					MPI_Send (new Stack)
@@ -209,7 +236,7 @@ int main(int argc, char** argv) {
      * 		 {
      * 		    if (local stack empty)
      * 			{
-     * 			   choose random CPU asking him for some work
+     * 			   choose random CPU asking him for some work // nebo to implementovat jako ACŽ-AHD asynchronní cyklické žádosti před03/sl28
      * 			   blocking MPI_Recv
      * 			   processor received stack
      * 			   continue with the outer 'for' loop
@@ -223,69 +250,10 @@ int main(int argc, char** argv) {
      * }     
      * 
      * 
-    */
-    
-
-    /* TEST KOMUNIKACE */
-    if (true) {
-        if (myID == MASTER) {
-            int pos = 0;
-
-            // vytvorim objekty simulujici praci algoritmu a poslu je
-            // POZOR Pack a predevsim Unpack je nachylny na to aby byla data konzistentni (coz pri vytvareni v algoritmu jsou)
-            // napriklad RL s ukazatelem current na jiz vyreseny (ma pozici) R se deserializuje na RL s ukazatelem current na prvni R bez pozice
-            FieldStack* FSout = new FieldStack();
-
-            // pozmenim kopie F
-            Field* F0 = new Field(*field); // nezmenena = puvodni
-            
-            Field* F1 = new Field(*field); // tvar 1., bez pozice
-            F1->getRectangles()->getCurrent()->setShape(Vector2D(1, 2));
-            
-            Field* F2 = new Field(*field); // tvar 1., bez pozice
-            F2->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
-
-            Field* F3 = new Field(*field); // tvar 1., pozice 1., posun na dalsi
-            F3->getRectangles()->getCurrent()->setShape(Vector2D(2, 1));
-            F3->getRectangles()->getCurrent()->setPosition(Vector2D(0, 0));
-            F3->colorField();
-            F3->getRectangles()->toNext();
-
-            // dam je do stacku
-            FSout->push(F0);
-            FSout->push(F1);
-            FSout->push(F2);
-            FSout->push(F3);
-
-            // zapackuju a odeslu jednicce s tagem 1
-            FSout->pack(buffer, BUFFER_SIZE, &pos);
-            MPI_Send(buffer, pos, MPI_PACKED, 1, 1, MPI_COMM_WORLD);
-
-            cout << myPrefix << "odeslal jsem: " << endl;
-            cout << FSout->toString();
-
-            // smazu ho od sebe i se vsim co ma v sobe
-            delete FSout;
-            
-        } else if (myID == 1) {
-            MPI_Status status;
-            int pos = 0;
-            FieldStack* FSin;
-
-            // prijmu od kohokoliv jakejkoliv tag a rozpackuju
-            MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            FSin = FieldStack::unpack(buffer, BUFFER_SIZE, &pos);
-
-            cout << myPrefix << "prijmul jsem: " << endl;
-            cout << FSin->toString();
-            
-        } else {
-            cout << myPrefix << "Nejsem Master ani Jednicka" << endl;
-        }
-    }
+     */
 
     /* ALGORITMUS */
-    while (false) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
+    while (true) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
             /*
              * Smyslem kroku je obarvit field jedním konkrétním obdélníkem.
@@ -358,7 +326,24 @@ int main(int argc, char** argv) {
             break; // sequential
             // parallel has to ask other processors
         }
-        
+
+        /*
+         * Prvotní rozposláni start fieldů
+         */
+        if (myID == MASTER && !firstSendExecuted && stack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim (pro sebe uz mam takze staci mit na stacku noIDs-1)
+            Field* Fout;
+            for (int i = 1; i < noIDs; i++) {
+                Fout = stack->popBottom();
+                pos = 0;
+                Fout->pack(buffer, BUFFER_SIZE, &pos);
+                MPI_Send(buffer, BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_SENT, MPI_COMM_WORLD);
+                
+                if(verbose || verboseProcessCommunication) cout << myPrefix << "Sent start Field to processor " << i << "." << endl;
+                delete Fout;
+            }
+            firstSendExecuted = true;
+        }
+
         /* Test na příchod zpráv */
     }
 
@@ -369,14 +354,14 @@ int main(int argc, char** argv) {
         /* time measuring - stop */
         t_end = MPI_Wtime();
 
-        /*
-        cout << "---------- SOLUTION ----------" << endl;
+        cout << "-------------------- SOLUTION --------------------" << endl;
         if (bestField != NULL) {
             cout << bestField->toString();
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
-         */
+        cout << "-------------------- /SOLUTION --------------------" << endl;
+
         cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
     }
 
