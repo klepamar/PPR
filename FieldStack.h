@@ -53,7 +53,7 @@ public:
 
     std::string toString() const;
 
-	FieldStack* divideStack ();
+	FieldStack* divide ();
 	FieldStackItem* findNewBottomItem () const;
 	void recalculateSize ();
 

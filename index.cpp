@@ -16,8 +16,15 @@
 using namespace std;
 
 /* globals and defines */
-#define BUFFER_SIZE 1024 // <= 1KB aby se posilalo neblokujicim zpusobem
-#define WORK_BUFFER_SIZE 5120
+#define MASTER 0
+#define AM_MASTER (myID == MASTER)
+
+#define BUFFER_SIZE 999 // <= 1KB aby se posilalo neblokujicim zpusobem
+#define WORK_BUFFER_SIZE 10000
+
+#define WORK_REQUEST_CHECK_FREQUENCY 50
+#define SMALLEST_ALLOWED_PROBLEM 2
+#define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
 
 #define MSG_WORK_REQUEST 1000
 #define MSG_WORK_SENT    1001
@@ -31,7 +38,6 @@ bool verbose = false; // prepinac -v
 bool verboseStackSize = false; // prepinac -vs
 bool verboseProcessCommunication = true; // prepinac -vc
 
-#define MASTER 0
 int myID = -1; // od 0 do noIDs-1
 string myPrefix = "";
 int noIDs = -1;
@@ -103,25 +109,53 @@ void processArguments(int argc, char** argv) {
     }
 }
 
+void sendNoWork(int toProcess) {
+    char dummyBuffer[1];
+
+    MPI_Send(dummyBuffer, BUFFER_SIZE, MPI_CHAR, toProcess, MSG_WORK_NOWORK, MPI_COMM_WORLD);
+    cout << myPrefix << "Send NO work to process " << toProcess << "." << endl;
+}
+
+void sendWork(FieldStack* stackOut, int toProcess) {
+    int pos = 0;
+    char workBuffer[WORK_BUFFER_SIZE]; // budu ho hodnekrat delat a zebere to kupu pameti/a nebo se mi to prepise i kdyz to jeste nebudu mit odeslano, měl bych se snazit využívat pořád jeden a kontrolovat jeslti už se z něj odeslalo
+    MPI_Request request;
+
+    if (stackOut == NULL || stackOut->isEmpty()) {
+        sendNoWork(toProcess);
+    }
+
+    stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
+    MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, toProcess, MSG_WORK_SENT, MPI_COMM_WORLD, &request);
+
+    cout << myPrefix << "Send work to process " << toProcess << "." << endl;
+}
+
+FieldStack* requestWork(int processFrom) {
+    
+}
+
 /**
  * 
  * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
  * 
  */
 int main(int argc, char** argv) {
-    FieldStack* stack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
-    Field* field = NULL;
-    Field* bestField = NULL;
+    FieldStack* myStack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
+    Field* myCurrField = NULL;
+    Field* myBestField = NULL;
+    char myBuffer[BUFFER_SIZE];
 
     double t_start, t_end;
-    char buffer[BUFFER_SIZE];
     int pos = 0;
-    char dummyBuffer;
+    int flag = 0;
     MPI_Status status;
+    MPI_Request request;
 
     bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
     bool workSentToLower = false; // true if Pj sent data to Pi where i < j, false after token sent
     bool haveToken = false;
+    int iterationCounter = 0;
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -143,33 +177,33 @@ int main(int argc, char** argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     /* initialize computation */
-    if (myID == MASTER) { // master load input data and create first Field
+    if (AM_MASTER) { // master load input data and create first Field
         /* time measuring - start */
         t_start = MPI_Wtime();
 
         // inicializace
         try {
             processArguments(argc, argv);
-            initField(field, fileName);
+            initField(myCurrField, fileName);
         } catch (string ex) {
             cout << "Exception: " << ex << endl;
 
-            delete field; // clean-up
-            delete bestField; // clean-up
-            delete stack; // clean-up
+            delete myCurrField; // clean-up
+            delete myBestField; // clean-up
+            delete myStack; // clean-up
             exit(EXIT_FAILURE);
         }
 
         cout << "-------------------- TASK --------------------" << endl;
-        cout << field->toString();
+        cout << myCurrField->toString();
         cout << "-------------------- /TASK --------------------" << endl;
 
     } else { // slaves wait (blocking way) for first data from master
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
-        MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_SENT, MPI_COMM_WORLD, &status);
+        MPI_Recv(myBuffer, BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_SENT, MPI_COMM_WORLD, &status);
         pos = 0;
-        field = Field::unpack(buffer, BUFFER_SIZE, &pos);
+        myCurrField = Field::unpack(myBuffer, BUFFER_SIZE, &pos);
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved start Field." << endl;
     }
@@ -271,16 +305,16 @@ int main(int argc, char** argv) {
             /*
              *  Ukončijící podmínka DFS, řešení nalezeno.
              */
-            if (field->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
+            if (myCurrField->getRectangles()->getCurrent() == NULL) { // žadný další rect => končím DFS, řešení nalezeno
                 if (verbose) cout << "Ending DFS, solution FOUND." << endl;
 
                 /*
                  * Zaznamenání nejlepšího řešení.
                  */
-                if (bestField == NULL || field->getPerimetrSum() < bestField->getPerimetrSum()) {
-                    delete bestField; // clean-up
-                    bestField = field;
-                    field = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
+                if (myBestField == NULL || myCurrField->getPerimetrSum() < myBestField->getPerimetrSum()) {
+                    delete myBestField; // clean-up
+                    myBestField = myCurrField;
+                    myCurrField = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
                 }
 
                 break;
@@ -289,23 +323,23 @@ int main(int argc, char** argv) {
             /*
              * (1)
              */
-            if (field->getRectangles()->getCurrent()->hasShape() == false) {
+            if (myCurrField->getRectangles()->getCurrent()->hasShape() == false) {
                 /*
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
                  */
-                field->solveRectShapes(stack); // vždy existuje alespoň jeden tvar
+                myCurrField->solveRectShapes(myStack); // vždy existuje alespoň jeden tvar
             }
 
             /*
              * (1+tvar) (2)
              */
-            if (field->getRectangles()->getCurrent()->hasPosition() == false) {
+            if (myCurrField->getRectangles()->getCurrent()->hasPosition() == false) {
                 /*
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
                  */
-                if (field->solveRectPositions(stack) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
+                if (myCurrField->solveRectPositions(myStack) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
                     if (verbose) cout << "Ending DFS, solution NOT found." << endl;
 
                     break;
@@ -316,18 +350,19 @@ int main(int argc, char** argv) {
              * (1+tvar+pozice) (2+pozice) (3) - vždy
              * Řeší obarvení fieldu aktuálním obdélníkem + posunutí.
              */
-            field->colorField();
-            field->getRectangles()->toNext();
+            myCurrField->colorField();
+            myCurrField->getRectangles()->toNext();
         }
 
         /*
          * Načtení dalšího stavu k řešení nového DFS + ukončující podmínka výpočtu.
          */
-        delete field;
-        field = stack->pop();
-        if (field == NULL) {
-            // poslat white token pokud ho mam
-            // obslouzit zpravy
+        delete myCurrField;
+        myCurrField = myStack->pop();
+        if (myCurrField == NULL) {
+            // 1) poslat white token pokud ho mam
+            // 2) pozadat o data (napsat funkci - budu tvolat na dvou mistech)
+            // 3) obslouzit zpravy
 
             /*
              * Test na příchod zprav (muze byt MPI_ANY_TAG)
@@ -339,8 +374,34 @@ int main(int argc, char** argv) {
              * MSG_FINISH - ano obsluhovat - ukoncujici podminka
              * MSG_SOLUTION - nemuze prijit - pouze pri ziskavani konecneho vysledku
              */
+            do { // mohlo prijit vic pozadavku
+                MPI_Iprobe(MPI_ANY_SOURCE, MSG_WORK_REQUEST, MPI_COMM_WORLD, &flag, &status);
+                if (flag) { // prisel pozadavek na praci
+                    switch (status.MPI_TAG) {
+                        case MSG_WORK_REQUEST: // nemam dostatek prace
+                            cout << myPrefix << "Process " << status.MPI_SOURCE << " request work." << endl;
+                            sendNoWork(status.MPI_SOURCE);
+                            break;
+                        case MSG_WORK_SENT:
+                            cout << myPrefix << "Process " << status.MPI_SOURCE << " sent work." << endl;
+                            // ok pouziju
+                            delete myStack;
 
-            if (verbose || verboseProcessCommunication) cout << myPrefix << "Empty stack." << endl;
+                            // stack = FiedlStack::unpack(...)
+
+                            break;
+                        case MSG_WORK_NOWORK:
+                            cout << myPrefix << "Process " << status.MPI_SOURCE << " sent NO work." << endl;
+                            // zadam znovu
+                            break;
+                        default:
+                            cout << myPrefix << "Not known or not expected tag " << status.MPI_TAG << " from process " << status.MPI_SOURCE << "." << endl;
+                            break;
+                    }
+                }
+            } while (flag);
+
+
 
             break; // sequential // parallel has to ask other processors
         }
@@ -348,15 +409,16 @@ int main(int argc, char** argv) {
         /*
          * Prvotní rozposláni start fieldů
          */
-        if (myID == MASTER && !firstSendExecuted && stack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
+        if (AM_MASTER && !firstSendExecuted && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
             Field* Fout;
             for (int i = 1; i < noIDs; i++) {
-                Fout = stack->popBottom(); // místo tohohle divide stack na n částí kdy jedna tu zůstane ostatní pošlu
+                Fout = myStack->popBottom(); // místo tohohle divide stack na n částí kdy jedna tu zůstane ostatní pošlu
                 pos = 0;
-                Fout->pack(buffer, BUFFER_SIZE, &pos);
-                MPI_Send(buffer, BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_SENT, MPI_COMM_WORLD);
+                Fout->pack(myBuffer, BUFFER_SIZE, &pos);
+                MPI_Send(myBuffer, BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_SENT, MPI_COMM_WORLD);
 
-                if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent start Field to processor " << i << "." << endl;
+                if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent start Field to process " << i << "." << endl;
+
                 delete Fout;
             }
             firstSendExecuted = true;
@@ -372,34 +434,51 @@ int main(int argc, char** argv) {
          * MSG_FINISH - pouze pri prazdnym stacku - nemuze přijit když ještě pracuju
          * MSG_SOLUTION - pouze pri ziskavani konecneho vysledku - nemuze přijit kdyz jeste pracuju prijde az po MSG_FINISH a to jenom Masterovi
          */
+        iterationCounter++;
+        if (iterationCounter == WORK_REQUEST_CHECK_FREQUENCY) {
+            do { // mohlo prijit vic pozadavku
+                MPI_Iprobe(MPI_ANY_SOURCE, MSG_WORK_REQUEST, MPI_COMM_WORLD, &flag, &status);
+                if (flag) { // prisel pozadavek na praci
+
+                    cout << myPrefix << "Process " << status.MPI_SOURCE << " request work." << endl;
+
+                    FieldStack* FSout = myStack->divide();
+                    sendWork(FSout, status.MPI_SOURCE);
+                    
+                    delete FSout;
+                }
+            } while (flag);
+
+            iterationCounter = 0;
+        }
     }
 
     /* waiting for all process, then end */ // na všechny procesy počkám tím že od nich přijmu jejich nej řešení
     // MPI_Barrier(MPI_COMM_WORLD); 
 
     /* Master */
-    if (myID == MASTER) { // Master počkám na zprávy od Slaves a vypíšu řešení
+    if (AM_MASTER) { // Master počkám na zprávy od Slaves a vypíšu řešení
         char isNull;
         for (int i = 1; i < noIDs; i++) {
             pos = 0;
-            
-            MPI_Recv(buffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &status);
 
-            MPI_Unpack(buffer, BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
+            MPI_Recv(myBuffer, BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &status);
+
+            MPI_Unpack(myBuffer, BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
             if (isNull == 0) {
-                field = Field::unpack(buffer, BUFFER_SIZE, &pos);
-                if (bestField == NULL || field->getPerimetrSum() < bestField->getPerimetrSum()) {
-                    delete bestField; // clean-up
-                    bestField = field;
+                myCurrField = Field::unpack(myBuffer, BUFFER_SIZE, &pos);
+                if (myBestField == NULL || myCurrField->getPerimetrSum() < myBestField->getPerimetrSum()) {
+                    delete myBestField; // clean-up
+                    myBestField = myCurrField;
                 }
             }
 
-            if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved bestField from process " << status.MPI_SOURCE << endl;
+            if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved bestField from process " << status.MPI_SOURCE << "." << endl;
         }
 
         cout << "-------------------- SOLUTION --------------------" << endl;
-        if (bestField != NULL) {
-            cout << bestField->toString();
+        if (myBestField != NULL) {
+            cout << myBestField->toString();
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
@@ -409,28 +488,30 @@ int main(int argc, char** argv) {
         t_end = MPI_Wtime();
 
         cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
+        
     } else { // Slaves pošlou svoje řešení
         char isNull; // s boolem nejak neslo
-        if (bestField != NULL) {
+        if (myBestField != NULL) {
             isNull = 0;
             pos = 0;
 
-            MPI_Pack(&isNull, 1, MPI_CHAR, buffer, BUFFER_SIZE, &pos, MPI_COMM_WORLD);
-            bestField->pack(buffer, BUFFER_SIZE, &pos);
+            MPI_Pack(&isNull, 1, MPI_CHAR, myBuffer, BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+            myBestField->pack(myBuffer, BUFFER_SIZE, &pos);
         } else { // teoreticky muze nastat
             isNull = 1;
+            pos = 0;
 
-            MPI_Pack(&isNull, 1, MPI_CHAR, buffer, BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+            MPI_Pack(&isNull, 1, MPI_CHAR, myBuffer, BUFFER_SIZE, &pos, MPI_COMM_WORLD);
         }
-        MPI_Send(buffer, BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
+        MPI_Send(myBuffer, BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent my bestField to Master." << endl;
     }
 
 
-    delete field; // clean-up
-    delete bestField; // clean-up
-    delete stack; // clean-up
+    delete myCurrField; // clean-up
+    delete myBestField; // clean-up
+    delete myStack; // clean-up
 
     /* shut down MPI */
     MPI_Finalize();

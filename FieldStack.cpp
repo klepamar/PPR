@@ -154,14 +154,15 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
     }
 }
 
-FieldStack* FieldStack::divideStack() {
+FieldStack* FieldStack::divide() {
     // return new stack as a result of the procedure and also change current stack
     FieldStack *newStack = new FieldStack();
 
     // the procedure must be called when multiple elements are present in the stack (!); it does not make sense to divide a stack with 1 item
     if (this->size <= 1) {
         // constructor of FieldStack sets both pointers to NULL, so you can return the new stack directly
-        return newStack;
+        // return newStack;
+        return NULL; // není dostatek prace aby sel rozdelit
     }
 
     // find new bottom item of the original stack & top item of the new stack
