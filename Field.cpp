@@ -213,16 +213,16 @@ void Field::colorField(Rectangle* rect, int color) {
     if (verbose) cout << "ColoringField:" << endl;
 
     if (rect->hasPosition()) { // true coloring of area
-        
+
         for (int i = rect->getPosition().getX(); i < rect->getPosition().getX() + rect->getShape().getX(); i++) {
             for (int j = rect->getPosition().getY(); j < rect->getPosition().getY() + rect->getShape().getY(); j++) {
                 fieldArray[i][j] = color;
             }
         }
-        
+
         // add perimeter
         perSum += rect->getPerimeter();
-        
+
     } else { // just write area
         fieldArray[rect->getBasePosition().getX()][rect->getBasePosition().getY()] = rect->getArea();
     }
@@ -237,7 +237,7 @@ void Field::colorField() {
 /*
  * for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
  */
-string Field::toString() const {
+string Field::toString(bool fieldArrayOnly) const {
     ostringstream ss;
 
     ss << "<FIELD>" << endl;
@@ -284,11 +284,17 @@ string Field::toString() const {
     }
     ss << "────┘" << endl;
 
-    ss << rects->toString(); // Vypisovat i RectList
+    if (fieldArrayOnly != true) {
+        ss << rects->toString(); // Vypisovat i RectList
+    }
 
     ss << "</FIELD>" << endl;
 
     return ss.str();
+}
+
+string Field::toString() const {
+    return toString(false);
 }
 
 void Field::pack(void *buffer, int bufferSize, int *bufferPos) {
@@ -309,18 +315,18 @@ Field * Field::unpack(void *buffer, int bufferSize, int *bufferPos) {
     field = new Field(Vector2D(dimX, dimY)); // sestaveni
     field->rects = RectList::unpack(buffer, bufferSize, bufferPos); // rects
 
-    for(int i = 0; i < field->dimX; i++) { // vynulovat fiedlAray protoze nedokazu rict kde nuly a kde cisla, v ostatnich pripadech to kopiruju z jinyho fieldArray takze to udelam v case a*b
-        for(int j = 0; j < field->dimY; j++) {
+    for (int i = 0; i < field->dimX; i++) { // vynulovat fiedlAray protoze nedokazu rict kde nuly a kde cisla, v ostatnich pripadech to kopiruju z jinyho fieldArray takze to udelam v case a*b
+        for (int j = 0; j < field->dimY; j++) {
             field->fieldArray[i][j] = 0; // vynulovani
         }
     }
-    
+
     field->rects->toFirst(); // na zacatek
-    while(field->rects->getCurrent() != NULL) { // vsechny projit
+    while (field->rects->getCurrent() != NULL) { // vsechny projit
         field->colorField(field->rects->getCurrent(), -1 * field->rects->getCurrentId()); // perSum, fieldArray
         field->rects->toNext();
     }
     field->rects->toUnpositioned(); // vratit se na current;
-    
+
     return field;
 }

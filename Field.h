@@ -35,6 +35,7 @@ public:
     void colorField();
 
     std::string toString() const;
+    std::string toString(bool fieldArrayOnly) const;
     
     void pack(void *outbuffer, int bufferSize, int *bufferPosition);
     static Field* unpack(void *inbuffer, int bufferSize, int *bufferPosition);    
