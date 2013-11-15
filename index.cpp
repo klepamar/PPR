@@ -33,6 +33,11 @@ using namespace std;
 #define MSG_FINISH              1004
 #define MSG_SOLUTION            1005
 
+#define WHITE 1
+#define BLACK 0
+#define TOKEN_COLOR(color) ((color) ? "white" : "black")
+
+
 const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku, idealni aby normalne cetl ze vstupu a jen prepinacem ze souboru
 bool verbose = false; // prepinac -v
 bool verboseStackSize = false; // prepinac -vs
@@ -112,10 +117,10 @@ void processArguments(int argc, char** argv) {
 void waitForLastRequest(MPI_Request* lastRequest, bool &lastRequestValidity) {
     int flag;
     MPI_Status status;
-    
+
     if (lastRequestValidity == true) { // netestovat pokud request neni validni
         do { // neni mozne prijmout/odeslat praci pokud predchozi neodesla cela
-            if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for last request on work buffer to be completed." << endl;
+            // if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for last request on work buffer to be completed." << endl;
             MPI_Test(lastRequest, &flag, &status);
         } while (!flag);
         lastRequestValidity = false;
@@ -146,10 +151,10 @@ void sendWork(char* workBuffer, FieldStack* stackOut, int acceptor, MPI_Request*
     if (stackOut == NULL || stackOut->isEmpty()) {
         sendNoWork(acceptor);
     }
-    
+
     /* work */
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending work to process " << acceptor << "." << endl;
-    
+
     waitForLastRequest(lastRequest, lastRequestValidity); // je nutne pockat aby byl workBuffer k pouziti
 
     char isNull = 0;
@@ -211,6 +216,32 @@ FieldStack* recieveWork(char* workBuffer, int donor, MPI_Request* lastRequest, b
     }
 }
 
+void sendToken(bool tokenColor, bool haveWork, bool &workSentToLower) {
+    int nextProcess = (myID + 1) % noIDs;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Sending token to process " << nextProcess << "." << endl;
+
+    if (haveWork || workSentToLower) {
+        tokenColor = BLACK;
+    } // else necham původní
+
+    MPI_Send(&tokenColor, 1, MPI_CHAR, nextProcess, MSG_TOKEN, MPI_COMM_WORLD);
+    workSentToLower = false;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Sent " << TOKEN_COLOR(tokenColor) << " token to process " << nextProcess << "." << endl;
+}
+
+bool recieveToken() {
+    bool tokenColor;
+    MPI_Status status;
+
+    MPI_Recv(&tokenColor, 1, MPI_CHAR, MPI_ANY_SOURCE, MSG_TOKEN, MPI_COMM_WORLD, &status);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Recieved " << TOKEN_COLOR(tokenColor) << " token from process " << status.MPI_SOURCE << "." << endl;
+
+    return tokenColor;
+}
+
 /**
  * 
  * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
@@ -232,8 +263,10 @@ int main(int argc, char** argv) {
     bool comm_request_validity = false;
 
     bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
-    bool workSentToLower = false; // true if Pj sent data to Pi where i < j, false after token sent
+    bool tokenColor = false; // true == white (no work), false == black (have work)
     bool haveToken = false;
+    bool workSentToLower = false; // true if Pj sent data to Pi where i < j, false after token sent
+
     bool finishFlag = false;
     int iterationCounter = 0;
 
@@ -453,16 +486,27 @@ int main(int argc, char** argv) {
             // 3) obslouzit zpravy
 
 
-            // 1)
+            // 1) TOKEN
+            if (AM_MASTER) { // pokud ma Master token obarvi ho na bilo a posle
+                if (haveToken) {
+                    tokenColor = WHITE;
+                    sendToken(tokenColor, false, workSentToLower);
+                    haveToken = false;
+                }
+            } else {
+                if (haveToken) {
+                    sendToken(tokenColor, false, workSentToLower);
+                    haveToken = false;
+                }
+            }
 
 
-
-            // 2) random donor request
+            // 2) DONOR REQUEST
             int donor = requestWork();
 
+
+            // 3) HANDLE MESSAGES
             /*
-             * 3) test na příchod zprav (muze byt MPI_ANY_TAG)
-             * 
              * MSG_WORK_REQUEST - ano obsluhovat - mám prazdnej stack nemám co poslat
              * MSG_WORK_RESPONSE - neobsluhovat - pockam si na ni az samostatne, urcite musi odpovedet nedojde k deadlocku
              * MSG_TOKEN - ano obsluhovat - řešení ukoncujici podminky 
@@ -493,7 +537,8 @@ int main(int argc, char** argv) {
                             break;
 
                         case MSG_TOKEN:
-                            // preposlat
+                            tokenColor = recieveToken();
+                            haveToken = true;
                             break;
 
                         case MSG_FINISH:
@@ -527,7 +572,7 @@ int main(int argc, char** argv) {
         }
 
         /*
-         * Prvotní rozposláni start fieldů
+         * Prvotní rozposláni start fieldů a tokenu
          */
         if (AM_MASTER && !firstSendExecuted && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
             Field* Fout;
@@ -544,6 +589,10 @@ int main(int argc, char** argv) {
                 delete Fout;
             }
             firstSendExecuted = true;
+
+            // prvni token
+            sendToken(WHITE, !myStack->isEmpty(), workSentToLower); // pradepodobne se posle cernej protoze mam neco na stacku
+            haveToken = false;
         }
 
         /*
@@ -586,7 +635,6 @@ int main(int argc, char** argv) {
 
     cout << myPrefix << "Venku z algoritmu." << endl; // sem se nedostanu
 
-
     /* waiting for all process, then end */ // na všechny procesy počkám tím že od nich přijmu jejich nej řešení
     // MPI_Barrier(MPI_COMM_WORLD); 
 
@@ -619,12 +667,13 @@ int main(int argc, char** argv) {
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
-        cout << "-------------------- /SOLUTION --------------------" << endl;
-
         /* time measuring - stop */
         t_end = MPI_Wtime();
 
         cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
+        cout << "-------------------- /SOLUTION --------------------" << endl;
+
+
 
     } else { // Slaves pošlou svoje řešení
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending my best Field to Master." << endl;
