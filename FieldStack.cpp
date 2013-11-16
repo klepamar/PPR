@@ -39,7 +39,7 @@ FieldStack::~FieldStack() {
 }
 
 void FieldStack::push(Field* field) {
-    if (verbose || verboseStackSize) cout << "Pushing stack: " << this->size << "++" << endl;
+    if (verbose || verboseStackSize) cout << myPrefix << "Pushing stack: " << this->size << "++" << endl;
 
     // create a new FieldStackItem
     FieldStackItem *newItem = new FieldStackItem(field);
@@ -58,7 +58,7 @@ void FieldStack::push(Field* field) {
 }
 
 Field* FieldStack::pop() {
-    if (verbose || verboseStackSize) cout << "Popping stack: " << this->size << "--" << endl;
+    if (verbose || verboseStackSize) cout << myPrefix << "Popping stack: " << this->size << "--" << endl;
 
     if (isEmpty()) {
         if (verbose) cout << "<FIELDSTACK>" << endl << "null" << endl << "</FIELDSTACK>" << endl;
@@ -85,7 +85,7 @@ Field* FieldStack::pop() {
 }
 
 Field* FieldStack::popBottom() {
-    if (verbose || verboseStackSize) cout << "Popping bottom of stack: " << this->size << "--" << endl;
+    if (verbose || verboseStackSize) cout << myPrefix << "PoppingBottom stack: " << this->size << "--" << endl;
 
     if (isEmpty()) {
         if (verbose) cout << "<FIELDSTACK>" << endl << "null" << endl << "</FIELDSTACK>" << endl;
