@@ -490,11 +490,22 @@ int main(int argc, char** argv) {
             // 1) TOKEN
             if (AM_MASTER) { // pokud ma Master token obarvi ho na bilo a posle
                 if (haveToken) {
-                    tokenColor = WHITE;
-                    sendToken(tokenColor, false, workSentToLower);
-                    haveToken = false;
+                    if (tokenColor == WHITE) { // vratil se mi bilej takze nikdo nema praci, ukonci
+
+                        char dummy = 1;
+                        for (int i = 1; i < noIDs; i++) { // send finish message to all other process
+                            MPI_Send(&dummy, 1, MPI_CHAR, i, MSG_FINISH, MPI_COMM_WORLD);
+                        }
+
+                        finishFlag = true; // finish 
+                        // break;// ale asi by mozna měl odpovedet na zpravy jeste (co kdyby nekdo blokujicně čekal na praci zrovna od Mastera)
+                    } else {
+                        tokenColor = WHITE;
+                        sendToken(tokenColor, false, workSentToLower);
+                        haveToken = false;
+                    }
                 }
-            } else {
+            } else { // Slaves pripadne obarvi preposlou
                 if (haveToken) {
                     sendToken(tokenColor, false, workSentToLower);
                     haveToken = false;
@@ -503,7 +514,10 @@ int main(int argc, char** argv) {
 
 
             // 2) DONOR REQUEST
-            int donor = requestWork();
+            int donor;
+            if (!finishFlag) { // nezadat praci pokud koncim ale musim vyresit dotazy
+                donor = requestWork();
+            }
 
 
             // 3) HANDLE MESSAGES
@@ -544,6 +558,7 @@ int main(int argc, char** argv) {
 
                         case MSG_FINISH:
                             // comm_flag = 0; // ani nedoresi vsechny zpravy // prijde mi nebezpecne
+                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved finish message." << endl;
                             finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
                             break;
 
