@@ -27,7 +27,7 @@ using namespace std;
 #define WORK_REQUEST_CHECK_FREQUENCY 50
 #define SMALLEST_ALLOWED_PROBLEM 2
 #define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
-#define SLEEP_TIME 500 * 1000 // microseconds
+#define SLEEP_TIME 50 * 1000 // microseconds
 
 #define MSG_WORK_REQUEST        1000
 #define MSG_WORK_RESPONSE       1001
@@ -254,6 +254,26 @@ void recieveDummy() {
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Dummy received." << endl;
 }
 
+Field* receiveSolution(char* smallBuffer) {
+    Field* field;
+    char isNull;
+    int pos = 0;
+    MPI_Status status;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving best Field." << endl;
+
+    MPI_Recv(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &status);
+
+    MPI_Unpack(smallBuffer, SMALL_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
+    if (isNull == 0) {
+        field = Field::unpack(smallBuffer, SMALL_BUFFER_SIZE, &pos);
+    }
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Received best Field from process " << status.MPI_SOURCE << "." << endl;
+
+    return field;
+}
+
 /**
  * 
  * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
@@ -281,6 +301,8 @@ int main(int argc, char** argv) {
 
     bool finishFlag = false;
     int iterationCounter = 0;
+
+    int gatheredSolutins = 0;
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -437,12 +459,7 @@ int main(int argc, char** argv) {
                 /*
                  * Zaznamenání nejlepšího řešení.
                  */
-                if (myBestField == NULL || myCurrField->getPerimetrSum() < myBestField->getPerimetrSum()) {
-                    delete myBestField; // clean-up
-                    myBestField = myCurrField;
-                    myCurrField = NULL; // protože při načítání nového fieldu ze stacku bych si smazal bestField
-                }
-
+                improveSolution(myBestField, myCurrField);
                 break;
             }
 
@@ -510,6 +527,7 @@ int main(int argc, char** argv) {
 
                         finishFlag = true; // finish 
                         // break;// ale asi by mozna měl odpovedet na zpravy jeste (co kdyby nekdo blokujicně čekal na praci zrovna od Mastera)
+                        break; // teď už je to v pohodě nikde necekam blokujicne, pouzivam sleep místo toho
                     } else {
                         tokenColor = WHITE;
                         sendToken(tokenColor, false, workSentToLower);
@@ -532,15 +550,7 @@ int main(int argc, char** argv) {
 
 
             // 3) HANDLE MESSAGES
-            /*
-             * MSG_WORK_REQUEST - ano obsluhovat - mám prazdnej stack nemám co poslat
-             * MSG_WORK_RESPONSE - neobsluhovat - pockam si na ni az samostatne, urcite musi odpovedet nedojde k deadlocku
-             * MSG_TOKEN - ano obsluhovat - řešení ukoncujici podminky 
-             * MSG_FINISH - ano obsluhovat - ukoncujici podminka
-             * MSG_SOLUTION - nemuze prijit - pouze pri ziskavani konecneho vysledku
-             */
-            
-            bool anyMessage = false;
+
             bool recievedResponse;
             while (true) { // abych pockal na work response
 
@@ -552,8 +562,6 @@ int main(int argc, char** argv) {
                     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &comm_flag, &comm_status);
 
                     if (comm_flag) { // prisla zprava
-
-                        anyMessage = true;
 
                         switch (comm_status.MPI_TAG) {
                             case MSG_WORK_REQUEST: // nemam dostatek prace
@@ -580,6 +588,14 @@ int main(int argc, char** argv) {
                                 finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
                                 break;
 
+                            case MSG_SOLUTION:
+                                if (finishFlag) { // projistotu kdyby nas napadlo posilat si nej reseni i v prubehu, tak me zajimaj az ty uplne koncovy
+                                    gatheredSolutins++;
+                                }
+                                myCurrField = receiveSolution(smallBuffer);
+                                improveSolution(myBestField, myCurrField);
+                                break;
+
                             default:
                                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known or not expected tag " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
                                 break;
@@ -587,7 +603,7 @@ int main(int argc, char** argv) {
                     }
                 } while (comm_flag);
 
-                if (!recievedResponse) { // jeste jsem nedostal odpoved na zadost o praci -> je treba pockat na odpoved
+                if (!recievedResponse && !finishFlag) { // jeste jsem nedostal odpoved na zadost o praci -> je treba pockat na odpoved
                     if (verbose || verboseProcessCommunication) cout << myPrefix << "No more messages, but still do not have work response. Sleep..." << endl;
                     usleep(SLEEP_TIME);
                     continue;
@@ -595,12 +611,6 @@ int main(int argc, char** argv) {
                     break;
                 }
             }
-
-            /*
-            if (anyMessage == false) {
-                if (verbose || verboseProcessCommunication) cout << myPrefix << "NO messages." << endl;
-            }
-             */
 
             if (finishFlag) { // ukoncující podmínka // uz nepockam ani na zpravu o praci - vim ze bych zadnou praci nedostal
                 break;
@@ -618,6 +628,10 @@ int main(int argc, char** argv) {
                 myCurrField = myStack->pop(); // tim zajistím vyskočení z cyklu
             }
             // else budu cyklus opakovat (zazadam noveho, odpovim na zpravy a cekam na praci)
+        }
+
+        if (finishFlag) { // neni treba uz pokracovat
+            break;
         }
 
         /*
@@ -645,14 +659,7 @@ int main(int argc, char** argv) {
         }
 
         /*
-         * Test na příchod pozadavku o praci 
-         * 
-         * MSG_WORK_REQUEST - ano obsluhuji - řeším jestli mě někdo žádá o práci
-         * MSG_WORK_SENT - nemuze prijit - pouze pri prazdnym stacku - nemuze prijit když jsem o práci nežádal
-         * MSG_WORK_NOWORK - nemuze prijit - pouze pri prazdnym stacku - nemuze přijit kdyz jsem o praci nezadal
-         * MSG_TOKEN - mohl bych obsluhovat ale stačí pouze pri prazdnym stacku - neni třeba odesilat černej kdyz mam ještě data, pockam a odeslu pak bilej, cernej jenom pokud jsem odeslal data procesoru s mensim ID
-         * MSG_FINISH - pouze pri prazdnym stacku - nemuze přijit když ještě pracuju
-         * MSG_SOLUTION - pouze pri ziskavani konecneho vysledku - nemuze přijit kdyz jeste pracuju prijde az po MSG_FINISH a to jenom Masterovi
+         * Test jen na zadost o praci, ostatni resim pri prazdnym stacku
          */
         iterationCounter++;
         if (iterationCounter == WORK_REQUEST_CHECK_FREQUENCY) {
@@ -683,8 +690,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    cout << myPrefix << "Venku z algoritmu." << endl; // sem se nedostanu
-
     /* waiting for all process, then end */ // na všechny procesy počkám tím že od nich přijmu jejich nej řešení
     // MPI_Barrier(MPI_COMM_WORLD); 
 
@@ -692,9 +697,12 @@ int main(int argc, char** argv) {
     if (AM_MASTER) { // Master počkám na zprávy od Slaves a vypíšu řešení
         char isNull;
 
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Gathering best Fields from other processes." << endl;
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Gathering rest of best Fields from other processes." << endl;
 
-        for (int i = 1; i < noIDs; i++) {
+        for (int i = 1; i < noIDs - gatheredSolutins; i++) { // pockam jeste na zbytek reseni (ne ty ktery neprisli kdyz jsem obsluhoval posledni zpravy)
+            myCurrField = receiveSolution(smallBuffer);
+            improveSolution(myBestField, myCurrField);
+            /*
             comm_pos = 0;
 
             MPI_Recv(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &comm_status);
@@ -702,13 +710,11 @@ int main(int argc, char** argv) {
             MPI_Unpack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
             if (isNull == 0) {
                 myCurrField = Field::unpack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
-                if (myBestField == NULL || myCurrField->getPerimetrSum() < myBestField->getPerimetrSum()) {
-                    delete myBestField; // clean-up
-                    myBestField = myCurrField;
-                }
+                improve(myBestField, myCurrField);
             }
 
             if (verbose || verboseProcessCommunication) cout << myPrefix << "Received best Field from process " << comm_status.MPI_SOURCE << "." << endl;
+             * */
         }
 
         cout << "-------------------- SOLUTION --------------------" << endl;

@@ -79,6 +79,24 @@ void Field::fill(istream &in) {
     }
 }
 
+// destruktivni pro horsi reseni
+bool improveSolution(Field* &best, Field* &possiblyBetter) {
+    if(possiblyBetter == NULL) {
+        return false;
+    }
+    
+    if (best == NULL || possiblyBetter->getPerimetrSum() < best->getPerimetrSum()) {
+        delete best; // clean-up
+        best = possiblyBetter;
+        possiblyBetter = NULL; // projistotu abych si timhle pointerem nesmazal lepsi reseni
+        return true;
+    } else {
+        delete possiblyBetter; 
+        possiblyBetter = NULL; // aby pokud ho mazu nekde venku to nehodilo chybu
+        return false;
+    }
+}
+
 bool Field::solveRectShapes(FieldStack* stack) {
     if (verbose) cout << "SolvingRectShapes for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
 
