@@ -150,6 +150,7 @@ void sendWork(char* workBuffer, FieldStack* stackOut, int acceptor, MPI_Request*
     /* no work */
     if (stackOut == NULL || stackOut->isEmpty()) {
         sendNoWork(acceptor);
+        return;
     }
 
     /* work */
