@@ -546,6 +546,7 @@ int main(int argc, char** argv) {
 
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Handle messages." << endl;
 
+                recievedResponse = false;
                 do { // mohlo prijit vic pozadavku
 
                     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &comm_flag, &comm_status);
@@ -562,6 +563,7 @@ int main(int argc, char** argv) {
                                 break;
 
                             case MSG_WORK_RESPONSE: // prisla mi zpatky odpoved (nemusi v ni bejt ale prace)
+                                recievedResponse = true;
                                 delete myStack;
                                 myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
                                 break;
