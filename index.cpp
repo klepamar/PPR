@@ -561,11 +561,13 @@ int main(int argc, char** argv) {
                 break;
             }
 
-            // pokud stale nemam praci blokujicne cekam
-            delete myStack;
-            myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
+            // pokud stale nemam praci (zatim jsem nedostal odpoved nebo jsem dostal odpoved ve ktery prace nebyla) tak blokujicne cekam
+            if (myStack == NULL || myStack->isEmpty()) {
+                delete myStack;
+                myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
+            }
 
-            if (myStack != NULL) {
+            if (myStack != NULL) { // asi by null bejt nikdy neměl ale projistotu
                 myCurrField = myStack->pop(); // tim zajistím vyskočení z cyklu
             }
             // else budu cyklus opakovat (zazadam noveho, odpovim na zpravy a cekam na praci)
