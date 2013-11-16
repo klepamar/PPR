@@ -10,6 +10,7 @@
 #include "mpi.h"
 #include <climits>
 #include <time.h>
+#include <unistd.h>
 
 #include "Field.h"
 #include "FieldStack.h"
@@ -26,6 +27,7 @@ using namespace std;
 #define WORK_REQUEST_CHECK_FREQUENCY 50
 #define SMALLEST_ALLOWED_PROBLEM 2
 #define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
+#define SLEEP_TIME 500 * 1000 // microseconds
 
 #define MSG_WORK_REQUEST        1000
 #define MSG_WORK_RESPONSE       1001
@@ -220,7 +222,7 @@ FieldStack* recieveWork(char* workBuffer, int donor, MPI_Request* lastRequest, b
 void sendToken(bool tokenColor, bool haveWork, bool &workSentToLower) {
     int nextProcess = (myID + 1) % noIDs;
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Sending token to process " << nextProcess << "." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending token to process " << nextProcess << "." << endl;
 
     if (haveWork || workSentToLower) {
         tokenColor = BLACK;
@@ -229,7 +231,7 @@ void sendToken(bool tokenColor, bool haveWork, bool &workSentToLower) {
     MPI_Send(&tokenColor, 1, MPI_CHAR, nextProcess, MSG_TOKEN, MPI_COMM_WORLD);
     workSentToLower = false;
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Sent " << TOKEN_COLOR(tokenColor) << " token to process " << nextProcess << "." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent " << TOKEN_COLOR(tokenColor) << " token to process " << nextProcess << "." << endl;
 }
 
 bool recieveToken() {
@@ -238,9 +240,18 @@ bool recieveToken() {
 
     MPI_Recv(&tokenColor, 1, MPI_CHAR, MPI_ANY_SOURCE, MSG_TOKEN, MPI_COMM_WORLD, &status);
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << " * Recieved " << TOKEN_COLOR(tokenColor) << " token from process " << status.MPI_SOURCE << "." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved " << TOKEN_COLOR(tokenColor) << " token from process " << status.MPI_SOURCE << "." << endl;
 
     return tokenColor;
+}
+
+void recieveDummy() {
+    char dummy;
+    MPI_Status status;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Dummy receiving." << endl;
+    MPI_Recv(&dummy, 1, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Dummy received." << endl;
 }
 
 /**
@@ -528,60 +539,78 @@ int main(int argc, char** argv) {
              * MSG_FINISH - ano obsluhovat - ukoncujici podminka
              * MSG_SOLUTION - nemuze prijit - pouze pri ziskavani konecneho vysledku
              */
-
-            if (verbose || verboseProcessCommunication) cout << myPrefix << "Handle messages." << endl;
-
+            
             bool anyMessage = false;
-            do { // mohlo prijit vic pozadavku
+            bool recievedResponse;
+            while (true) { // abych pockal na work response
 
-                MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &comm_flag, &comm_status);
+                if (verbose || verboseProcessCommunication) cout << myPrefix << "Handle messages." << endl;
 
-                if (comm_flag) { // prisla zprava
+                do { // mohlo prijit vic pozadavku
 
-                    anyMessage = true;
+                    MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &comm_flag, &comm_status);
 
-                    switch (comm_status.MPI_TAG) {
-                        case MSG_WORK_REQUEST: // nemam dostatek prace
-                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
-                            sendNoWork(comm_status.MPI_SOURCE);
-                            break;
+                    if (comm_flag) { // prisla zprava
 
-                        case MSG_WORK_RESPONSE: // prisla mi zpatky odpoved (nemusi v ni bejt ale prace)
-                            delete myStack;
-                            myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
-                            break;
+                        anyMessage = true;
 
-                        case MSG_TOKEN:
-                            tokenColor = recieveToken();
-                            haveToken = true;
-                            break;
+                        switch (comm_status.MPI_TAG) {
+                            case MSG_WORK_REQUEST: // nemam dostatek prace
+                                recieveDummy();
+                                if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
+                                sendNoWork(comm_status.MPI_SOURCE);
+                                break;
 
-                        case MSG_FINISH:
-                            // comm_flag = 0; // ani nedoresi vsechny zpravy // prijde mi nebezpecne
-                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved finish message." << endl;
-                            finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
-                            break;
+                            case MSG_WORK_RESPONSE: // prisla mi zpatky odpoved (nemusi v ni bejt ale prace)
+                                delete myStack;
+                                myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
+                                break;
 
-                        default:
-                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known or not expected tag " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
-                            break;
+                            case MSG_TOKEN:
+                                tokenColor = recieveToken();
+                                haveToken = true;
+                                break;
+
+                            case MSG_FINISH:
+                                recieveDummy();
+                                // comm_flag = 0; // ani nedoresi vsechny zpravy // prijde mi nebezpecne
+                                if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved finish message." << endl;
+                                finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
+                                break;
+
+                            default:
+                                if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known or not expected tag " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
+                                break;
+                        }
                     }
-                }
-            } while (comm_flag);
+                } while (comm_flag);
 
+                if (!recievedResponse) { // jeste jsem nedostal odpoved na zadost o praci -> je treba pockat na odpoved
+                    if (verbose || verboseProcessCommunication) cout << myPrefix << "No more messages, but still do not have work response. Sleep..." << endl;
+                    usleep(SLEEP_TIME);
+                    continue;
+                } else {
+                    break;
+                }
+            }
+
+            /*
             if (anyMessage == false) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "NO messages." << endl;
             }
+             */
 
             if (finishFlag) { // ukoncující podmínka // uz nepockam ani na zpravu o praci - vim ze bych zadnou praci nedostal
                 break;
             }
 
+            /*
             // pokud stale nemam praci (zatim jsem nedostal odpoved nebo jsem dostal odpoved ve ktery prace nebyla) tak blokujicne cekam
             if (myStack == NULL || myStack->isEmpty()) {
                 delete myStack;
                 myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
             }
+             */
 
             if (myStack != NULL) { // asi by null bejt nikdy neměl ale projistotu
                 myCurrField = myStack->pop(); // tim zajistím vyskočení z cyklu
@@ -634,6 +663,7 @@ int main(int argc, char** argv) {
                 if (comm_flag) { // prisel pozadavek na praci
                     anyRequest = true;
 
+                    recieveDummy();
                     if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
 
                     FieldStack* FSout = myStack->divide();
