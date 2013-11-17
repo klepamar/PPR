@@ -255,7 +255,7 @@ void recieveDummy() {
 }
 
 Field* receiveSolution(char* smallBuffer) {
-    Field* field;
+    Field* field = NULL;
     char isNull;
     int pos = 0;
     MPI_Status status;
