@@ -739,14 +739,14 @@ int main(int argc, char** argv) {
             isNull = 0;
             comm_pos = 0;
 
-			cout << myPrefix << "bestField perimeter sum: " << myBestField->getPerimetrSum() << endl;
+			//cout << myPrefix << "bestField perimeter sum: " << myBestField->getPerimetrSum() << endl;
             MPI_Pack(&isNull, 1, MPI_CHAR, smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, MPI_COMM_WORLD);
             myBestField->pack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
         } else { // teoreticky muze nastat
             isNull = 1;
             comm_pos = 0;
 
-			cout << myPrefix << "bestField perimeter sum: " << "UNDEF" << endl;
+			//cout << myPrefix << "bestField perimeter sum: " << "UNDEF" << endl;
             MPI_Pack(&isNull, 1, MPI_CHAR, smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, MPI_COMM_WORLD);
         }
         MPI_Send(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);

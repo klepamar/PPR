@@ -10,6 +10,7 @@
 using namespace std;
 
 extern bool verbose;
+extern bool verboseProcessCommunication;
 extern string myPrefix;
 
 Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()) {
@@ -81,9 +82,14 @@ void Field::fill(istream &in) {
 
 // destruktivni pro horsi reseni
 bool improveSolution(Field* &best, Field* &possiblyBetter) {
-	if (best) cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
-	if (possiblyBetter) cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
-
+	if (verbose || verboseProcessCommunication) {
+		if (best) 
+			cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
+		else cout << "Best perimeter sum: " << "UNDEF" << endl;
+		if (possiblyBetter)
+			cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
+		else cout << "Possibly better perimeter sum: " << "UNDEF" << endl;
+	}
     if(possiblyBetter == NULL) {
         return false;
     }
