@@ -81,6 +81,9 @@ void Field::fill(istream &in) {
 
 // destruktivni pro horsi reseni
 bool improveSolution(Field* &best, Field* &possiblyBetter) {
+	if (best) cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
+	if (possiblyBetter) cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
+
     if(possiblyBetter == NULL) {
         return false;
     }
