@@ -10,7 +10,7 @@ do
 	then
 		cir=$(cat $resultFile)
 		echo "Processing $file, expected circumference = $cir"
-		./ppr -f $file > output.log
+		mpirun -np 2 ./ppr -f $file > output.log
 		actualCir=$(grep 'perimeter sum:' output.log | tail -1)
 		actualCir=$(echo $actualCir | cut -d ':' -f2 | awk '{print $1}')
 		if [[ $actualCir -eq $cir ]]
