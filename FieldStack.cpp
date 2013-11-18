@@ -8,6 +8,7 @@ using namespace std;
 
 extern bool verbose;
 extern bool verboseStackSize;
+extern bool verboseProcessCommunication;
 extern string myPrefix;
 
 FieldStack::FieldStack() {
@@ -155,6 +156,15 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
 }
 
 FieldStack* FieldStack::divideByOne() {
+	if (verbose || verboseProcessCommunication) {
+		// include information about RectList
+		FieldStackItem* tmp = this->bottomItem;
+		while (tmp) {
+			cout << "<-" << tmp->field->getRectangles()->getCurrentId() << endl;
+			tmp = tmp->upper;
+		}
+	}
+
 	// return new stack iff stack size is at least 2
 	FieldStack* newStack = new FieldStack();
 	
