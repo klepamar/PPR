@@ -193,6 +193,18 @@ FieldStack* FieldStack::divideByOne() {
 			start = false;
 			continue;
 		}
+		// hopefully, solution to segfault - always leave at least 1 element in the original stack
+		// if no element being part of the original stack after traversing (n-1) elements, put n-th element into the original stack
+		if (current->upper == NULL && origStackLink == current) {
+			this->topItem = this->bottomItem = current;
+			current->upper = current->below = NULL;
+			newStack->topItem = newStackLink;
+			newStack->topItem->upper = NULL;
+			this->recalculateSize(); // should produce = 1
+			newStack->recalculateSize(); // should produce = n-1
+			continue; // should move to the next iteration & end immediately afterwards
+		}
+		
 		// compare ranks of current and previous elements
 		if (current->field->getRectangles()->getCurrentId() != previous->field->getRectangles()->getCurrentId()) {
 			// if ranks differ, current element will be part of the new stack
