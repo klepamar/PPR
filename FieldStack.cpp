@@ -160,9 +160,10 @@ FieldStack* FieldStack::divideByOne() {
 		// include information about RectList
 		FieldStackItem* tmp = this->bottomItem;
 		while (tmp) {
-			cout << "<-" << tmp->field->getRectangles()->getCurrentId() << endl;
+			cout << "<-" << tmp->field->getRectangles()->getCurrentId();
 			tmp = tmp->upper;
 		}
+		cout << endl;
 	}
 
 	// return new stack iff stack size is at least 2
@@ -233,6 +234,46 @@ FieldStack* FieldStack::divideByOne() {
 	// change value of "size" varaible for both stacks
 	this->recalculateSize();
 	newStack->recalculateSize();
+	
+	// verify that stack can be traversed using both links ("upper" and "below") for both new and original stack
+	if (verbose || verboseProcessCommunication) {
+		FieldStackItem* tmpOrig = this->topItem;
+		int cnt = 0;
+		
+		cout << "Original stack (from top to bottom): ";
+		while (tmpOrig) {
+			cnt++;
+			tmpOrig = tmpOrig->below;
+		}
+		cout << cnt << endl;
+		
+		cnt = 0;
+		tmpOrig = this->bottomItem;
+		cout << "Original stack (from bottom to top): ";
+		while (tmpOrig) {
+			cnt++;
+			tmpOrig = tmpOrig->upper;
+		}
+		cout << cnt << endl;
+		
+		cnt = 0;
+		FieldStackItem* tmpNew = newStack->topItem;
+		cout << "New stack (from top to bottom): ";
+		while (tmpNew) {
+			cnt++;
+			tmpNew = tmpNew->below;
+		}
+		cout << cnt << endl;
+		
+		cnt = 0;
+		tmpNew = newStack->bottomItem;
+		cout << "New stack (from bottom to top): ";
+		while (tmpNew) {
+			cnt++;
+			tmpNew = tmpNew->upper;
+		}
+		cout << cnt << endl;
+	}
 	
 	// return new stack which consists of, at least, 1 element
 	return newStack;
