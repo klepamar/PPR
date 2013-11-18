@@ -202,7 +202,7 @@ FieldStack* FieldStack::divideByOne() {
 			newStack->topItem->upper = NULL;
 			this->recalculateSize(); // should produce = 1
 			newStack->recalculateSize(); // should produce = n-1
-			continue; // should move to the next iteration & end immediately afterwards
+			goto NAVESTIE;
 		}
 		
 		// compare ranks of current and previous elements
@@ -246,7 +246,8 @@ FieldStack* FieldStack::divideByOne() {
 	// change value of "size" varaible for both stacks
 	this->recalculateSize();
 	newStack->recalculateSize();
-	
+
+NAVESTIE:	
 	// verify that stack can be traversed using both links ("upper" and "below") for both new and original stack
 	if (verbose || verboseProcessCommunication) {
 		FieldStackItem* tmpOrig = this->topItem;

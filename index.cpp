@@ -677,7 +677,7 @@ int main(int argc, char** argv) {
                     if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
 
 					if (verbose || verboseProcessCommunication) divideStackCalled++;
-                    FieldStack* FSout = myStack->divideByOne();
+                    FieldStack* FSout = myStack->divide();
                     sendWork(workBuffer, FSout, comm_status.MPI_SOURCE, &comm_request, comm_request_validity);
 
                     delete FSout;
