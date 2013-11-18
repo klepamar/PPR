@@ -303,6 +303,7 @@ int main(int argc, char** argv) {
     int iterationCounter = 0;
 
     int gatheredSolutins = 0;
+    int divideStackCalled = 0;
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -675,7 +676,8 @@ int main(int argc, char** argv) {
                     recieveDummy();
                     if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
 
-                    FieldStack* FSout = myStack->divide();
+					if (verbose || verboseProcessCommunication) divideStackCalled++;
+                    FieldStack* FSout = myStack->divideByOne();
                     sendWork(workBuffer, FSout, comm_status.MPI_SOURCE, &comm_request, comm_request_validity);
 
                     delete FSout;
@@ -750,7 +752,7 @@ int main(int argc, char** argv) {
             MPI_Pack(&isNull, 1, MPI_CHAR, smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, MPI_COMM_WORLD);
         }
         MPI_Send(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
-
+		
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent my best Field to Master." << endl;
     }
 
@@ -760,6 +762,11 @@ int main(int argc, char** argv) {
     delete myStack; // clean-up
 
     /* shut down MPI */
+    
+    // each CPU displays how many times stack was divided
+    sleep (1);
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Divided stack: " << divideStackCalled << " times." << endl;
+    
     MPI_Finalize();
 
     exit(EXIT_SUCCESS);

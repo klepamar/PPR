@@ -154,6 +154,80 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
     }
 }
 
+FieldStack* FieldStack::divideByOne() {
+	// return new stack iff stack size is at least 2
+	FieldStack* newStack = new FieldStack();
+	
+	if (this->size <= 1) {
+		return NULL;
+	}
+	
+	// flag indicating the first iteration
+	bool start = true;
+	// flag indicating when the first rank comaprison is equal
+	bool firstEqualComparison = true;
+	// pointers to respective stacks (where "below" pointer will point to)
+	FieldStackItem* origStackLink;
+	FieldStackItem* newStackLink;
+	// two elements in a row of the stack
+	FieldStackItem* current = this->bottomItem;
+	FieldStackItem* previous;
+	while (current) {
+		if (start) {
+			newStack->bottomItem = current;
+			newStackLink = current;
+			origStackLink = current->upper;
+			previous = current;
+			current = current->upper;
+			start = false;
+			continue;
+		}
+		// compare ranks of current and previous elements
+		if (current->field->getRectangles()->getCurrentId() != previous->field->getRectangles()->getCurrentId()) {
+			// if ranks differ, current element will be part of the new stack
+			current->below = newStackLink;
+			newStackLink->upper = current;
+			newStackLink = current;
+			// move origStackLink upwards until the first element of the stack is found
+			if (origStackLink == newStackLink) {
+				origStackLink = newStackLink->upper;
+			}
+		}
+		else {
+			// if ranks do not differ
+			// during first comparison set lowest element belonging to the original stack with NULL "below" pointer
+			if (firstEqualComparison) {
+				current->below = NULL;
+				this->bottomItem = current;
+				origStackLink = current;
+				firstEqualComparison = false;
+			}
+			else {
+				current->below = origStackLink;
+				origStackLink->upper = current;
+				origStackLink = current;
+			}
+		}
+		// traverse up towards the top of the stack
+		previous = current;
+		current = current->upper;
+	}
+	if (origStackLink == NULL) {
+		// current stack will remain empty because all ranks were included exactly once in the original stack
+		this->bottomItem = NULL;
+	}
+	this->topItem = origStackLink;
+	this->topItem->upper = NULL;
+	newStack->topItem = newStackLink;
+	newStack->topItem->upper = NULL;
+	// change value of "size" varaible for both stacks
+	this->recalculateSize();
+	newStack->recalculateSize();
+	
+	// return new stack which consists of, at least, 1 element
+	return newStack;
+}
+
 FieldStack* FieldStack::divide() {
     // return new stack as a result of the procedure and also change current stack
     FieldStack *newStack = new FieldStack();
