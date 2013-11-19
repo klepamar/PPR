@@ -18,16 +18,22 @@
 using namespace std;
 
 /* globals and defines */
-#define MASTER 0
-#define AM_MASTER (myID == MASTER)
-
-#define SMALL_BUFFER_SIZE 999 // <= 1KB aby se posilalo neblokujicim zpusobem
-#define WORK_BUFFER_SIZE 10000
-
 #define WORK_REQUEST_CHECK_FREQUENCY 50
 #define SMALLEST_ALLOWED_PROBLEM 2
 #define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
 #define SLEEP_TIME 50 * 1000 // microseconds
+
+#define MASTER 0
+#define AM_MASTER (myID == MASTER)
+
+#define ZERO_BUFFER_SIZE        0
+#define TINY_BUFFER_SIZE        1 // for empty messages // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
+#define SMALL_BUFFER_SIZE       999 // mene nez 1KB aby se posilalo neblokujicim zpusobem
+#define WORK_BUFFER_SIZE        8 * 1000000 // k * 1MB
+
+char tinyBuffer[TINY_BUFFER_SIZE];
+char smallBuffer[SMALL_BUFFER_SIZE];
+char workBuffer[WORK_BUFFER_SIZE];
 
 #define MSG_WORK_REQUEST        1000
 #define MSG_WORK_RESPONSE       1001
@@ -39,11 +45,10 @@ using namespace std;
 #define BLACK 0
 #define TOKEN_COLOR(color) ((color) ? "white" : "black")
 
-
 const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku, idealni aby normalne cetl ze vstupu a jen prepinacem ze souboru
 bool verbose = false; // prepinac -v
 bool verboseStackSize = false; // prepinac -vs
-bool verboseProcessCommunication = true; // prepinac -vc
+bool verboseProcessCommunication = false; // prepinac -vc
 
 int myID = -1; // od 0 do noIDs-1
 string myPrefix = "";
@@ -116,7 +121,7 @@ void processArguments(int argc, char** argv) {
     }
 }
 
-void waitForLastRequest(MPI_Request* lastRequest, bool &lastRequestValidity) {
+void waitForLastWorkRequest(MPI_Request* lastRequest, bool &lastRequestValidity) {
     int flag;
     MPI_Status status;
 
@@ -129,79 +134,79 @@ void waitForLastRequest(MPI_Request* lastRequest, bool &lastRequestValidity) {
     }
 }
 
-void sendNoWork(int acceptor) {
-    int pos = 0;
-    char dummyBuffer[1];
-    char isNull = 1;
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending work to process " << acceptor << "." << endl;
-
-    MPI_Pack(&isNull, 1, MPI_CHAR, dummyBuffer, 1, &pos, MPI_COMM_WORLD); // no work
-
-    MPI_Send(dummyBuffer, 1, MPI_CHAR, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD);
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NO work to process " << acceptor << "." << endl;
-}
-
-/* in/out lastRequestValidity, lastRequestValidity is changed */
-void sendWork(char* workBuffer, FieldStack* stackOut, int acceptor, MPI_Request* lastRequest, bool &lastRequestValidity) {
-    int pos = 0;
-    int flag;
-    MPI_Status status;
-
-    /* no work */
-    if (stackOut == NULL || stackOut->isEmpty()) {
-        sendNoWork(acceptor);
-        return;
-    }
-
-    /* work */
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending work to process " << acceptor << "." << endl;
-
-    waitForLastRequest(lastRequest, lastRequestValidity); // je nutne pockat aby byl workBuffer k pouziti
-
-    char isNull = 0;
-    MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD); // work
-    stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
-
-    MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, lastRequest);
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent work to process " << acceptor << "." << endl;
-
-    lastRequestValidity = true;
-}
-
-int requestWork() {
-
-    // get donor
+int getDonor() {
     int donor;
     srand(time(NULL));
 
     do {
         donor = rand() % noIDs;
     } while (donor == myID);
-
-    // send request
-    int pos = 0;
-    char dummyBuffer[1];
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Requesting work from process " << donor << "." << endl;
-
-    MPI_Send(dummyBuffer, 1, MPI_CHAR, donor, MSG_WORK_REQUEST, MPI_COMM_WORLD);
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Request for work from process " << donor << " sent." << endl;
-
-    return donor;
 }
 
-FieldStack* recieveWork(char* workBuffer, int donor, MPI_Request* lastRequest, bool lastRequestValidity) {
-    int pos = 0;
-    int flag;
+void sendWorkRequest(int donor) {
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sendding work request to process " << donor << "." << endl;
+
+    MPI_Send(tinyBuffer, ZERO_BUFFER_SIZE, MPI_CHAR, donor, MSG_WORK_REQUEST, MPI_COMM_WORLD);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent work request to process " << donor << "." << endl;
+}
+
+void receiveWorkRequest(int acceptor) {
     MPI_Status status;
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for work from process " << donor << "." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving work request from process " << acceptor << "." << endl;
 
-    waitForLastRequest(lastRequest, lastRequestValidity);
+    MPI_Recv(tinyBuffer, ZERO_BUFFER_SIZE, MPI_CHAR, acceptor, MSG_WORK_REQUEST, MPI_COMM_WORLD, &status);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Received work request from process " << status.MPI_SOURCE << "." << endl;
+}
+
+void sendNoWorkResponse(int acceptor) {
+    int pos = 0;
+    char isNull = 1; // mean I sent no work
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending work to process " << acceptor << "." << endl;
+
+    MPI_Pack(&isNull, 1, MPI_CHAR, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+    MPI_Send(tinyBuffer, TINY_BUFFER_SIZE, MPI_CHAR, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NO work to process " << acceptor << "." << endl;
+}
+
+/* in/out lastRequestValidity, lastRequestValidity is changed */
+void sendWorkResponse(FieldStack* stackOut, int acceptor, MPI_Request* lastRequest, bool &lastRequestValidity) {
+    int pos = 0;
+    MPI_Status status;
+
+    /* no work */
+    if (stackOut == NULL || stackOut->isEmpty()) {
+        sendNoWorkResponse(acceptor);
+        return;
+    }
+
+    /* work */
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending work to process " << acceptor << "." << endl;
+
+    waitForLastWorkRequest(lastRequest, lastRequestValidity); // je nutne pockat aby byl workBuffer k pouziti
+
+    char isNull = 0; // mean I sent work
+    MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+    stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
+
+    MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, lastRequest);
+    lastRequestValidity = true;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent SOME work to process " << acceptor << "." << endl;
+}
+
+/* in/out lastRequestValidity, lastRequestValidity is changed */
+FieldStack* receiveWorkResponse(int donor, MPI_Request* lastRequest, bool &lastRequestValidity) {
+    int pos = 0;
+    MPI_Status status;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving work from process " << donor << "." << endl;
+
+    waitForLastWorkRequest(lastRequest, lastRequestValidity);
 
     // blokujicim zpusobem cekam na odpoved na zadost o praci, stejne bych nemoh nic delat, jedine odpovidat na zpravy (ale na ty ktery by zpusobily deadlock jsem odpovedel)
     MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, donor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &status);
@@ -210,16 +215,16 @@ FieldStack* recieveWork(char* workBuffer, int donor, MPI_Request* lastRequest, b
     MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD); // jednou tady mam ten dummy ale stejne z nej prectu jen ten byte tak by to nemelo vadit
 
     if (isNull) { // prace neprisla
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << donor << " sent NO work." << endl;
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NO work from process " << status.MPI_SOURCE << endl;
         return NULL;
     } else { // prace prisla
         FieldStack* FSin = FieldStack::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << donor << " sent work." << endl;
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME work from process " << status.MPI_SOURCE << endl;
         return FSin;
     }
 }
 
-void sendToken(bool tokenColor, bool haveWork, bool &workSentToLower) {
+void sendToken(char tokenColor, bool haveWork, bool &workSentToLower) { // prijemce je pevne dany
     int nextProcess = (myID + 1) % noIDs;
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending token to process " << nextProcess << "." << endl;
@@ -229,47 +234,86 @@ void sendToken(bool tokenColor, bool haveWork, bool &workSentToLower) {
     } // else necham původní
 
     MPI_Send(&tokenColor, 1, MPI_CHAR, nextProcess, MSG_TOKEN, MPI_COMM_WORLD);
-    workSentToLower = false;
+    workSentToLower = false; // vynulovat
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent " << TOKEN_COLOR(tokenColor) << " token to process " << nextProcess << "." << endl;
 }
 
-bool recieveToken() {
-    bool tokenColor;
+bool receiveToken() { // odesilatel je pevne dany ale pro zjednoduseni prijimam ode vsech
+    char tokenColor;
     MPI_Status status;
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving token." << endl;
 
     MPI_Recv(&tokenColor, 1, MPI_CHAR, MPI_ANY_SOURCE, MSG_TOKEN, MPI_COMM_WORLD, &status);
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved " << TOKEN_COLOR(tokenColor) << " token from process " << status.MPI_SOURCE << "." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Received " << TOKEN_COLOR(tokenColor) << " token from process " << status.MPI_SOURCE << "." << endl;
 
-    return tokenColor;
+    return (bool)tokenColor;
 }
 
-void recieveDummy() {
-    char dummy;
+void sendFinish(int acceptor) {
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending finish message to process " << acceptor << "." << endl;
+
+    MPI_Send(tinyBuffer, ZERO_BUFFER_SIZE, MPI_CHAR, acceptor, MSG_FINISH, MPI_COMM_WORLD);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent finish message to process " << acceptor << "." << endl;
+}
+
+void receiveFinish() { // odesilatel jen Master ale nechavam projistotu ANY
     MPI_Status status;
 
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Dummy receiving." << endl;
-    MPI_Recv(&dummy, 1, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Dummy received." << endl;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving finish message." << endl;
+
+    MPI_Recv(smallBuffer, 0, MPI_CHAR, MPI_ANY_SOURCE, MSG_FINISH, MPI_COMM_WORLD, &status);
+
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Received finish message from process " << status.MPI_SOURCE << "." << endl;
 }
 
-Field* receiveSolution(char* smallBuffer) {
-    Field* field = NULL;
+void sendSolution(Field* bestSolution) { // prijemce je Master
+    int pos = 0;
+    if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending best Field to Master." << endl;
+
+    char isNull;
+    if (bestSolution != NULL) {
+        isNull = 0;
+
+        MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+        bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
+        MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
+        
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
+    } else { // nema zadne reseni
+        isNull = 1;
+
+        MPI_Pack(&isNull, 1, MPI_CHAR, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+        MPI_Send(tinyBuffer, TINY_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
+        
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
+    }
+}
+
+/* in/out lastRequestValidity, lastRequestValidity is changed */
+Field* receiveSolution(MPI_Request* lastRequest, bool &lastRequestValidity) { // odesilatel muze bejt kdokoliv
+    Field* field;
     char isNull;
     int pos = 0;
     MPI_Status status;
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving best Field." << endl;
 
-    MPI_Recv(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &status);
+    waitForLastWorkRequest(lastRequest, lastRequestValidity);
 
-    MPI_Unpack(smallBuffer, SMALL_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
+    MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &status);
+
+    MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
     if (isNull == 0) {
-        field = Field::unpack(smallBuffer, SMALL_BUFFER_SIZE, &pos);
+        field = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
+    } else {
+        field = NULL;
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NULL best Field from process " << status.MPI_SOURCE << "." << endl;
     }
-
-    if (verbose || verboseProcessCommunication) cout << myPrefix << "Received best Field from process " << status.MPI_SOURCE << "." << endl;
 
     return field;
 }
@@ -284,15 +328,12 @@ int main(int argc, char** argv) {
     Field* myCurrField = NULL;
     Field* myBestField = NULL;
 
-    char smallBuffer[SMALL_BUFFER_SIZE];
-    char workBuffer[WORK_BUFFER_SIZE];
-
     double t_start, t_end;
     int comm_pos = 0;
     int comm_flag = 0;
     MPI_Status comm_status;
     MPI_Request comm_request;
-    bool comm_request_validity = false;
+    bool comm_requestValidity = false;
 
     bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
     bool tokenColor = false; // true == white (no work), false == black (have work)
@@ -350,95 +391,19 @@ int main(int argc, char** argv) {
     } else { // slaves wait (blocking way) for first data from master
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
-        MPI_Recv(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_status);
-        comm_pos = 0;
-        myCurrField = Field::unpack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
 
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved start Field." << endl;
+        /* TODO az bude minimalDivide tak pouzit normalne receive work */
+        MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_status);
+        comm_pos = 0;
+        myCurrField = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &comm_pos);
+
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received start Field." << endl;
     }
 
 
-    /* PARALELNY ALGORITMUS PODLA EDUXU */
-    /*
-     * pesek white = color unchanged
-     * pesek black = color has been changed
-     * 
-     * master provides some work for every CPU and sends initial white pesek
-     * for all fields in the local stack
-     * {
-     *    for current DFS
-     *    {
-     *       process for all shapes x,y
-     *       process for all positions
-     *    }
-     * 	  stack->pop (ask for new field from the stack)
-     *    for every n-th occurrence (n in between 10..100)
-     *    {
-     * 	     MPI_Iprobe (verify no message has been received)
-     * 		 if (message received)
-     *       {
-     * 		    case (asked to provide work for another CPU)
-     * 			{
-     * 				if (my stack contains any element of level i am allow to send) // napriklad posledních k levelu nema cenu pprotoze jsou to uz opravdu maly ukoly (DEFINE a experimentovat)
-     * 				{
-     * 					divideStack()
-     * 					MPI_Send (new Stack)
-     * 				}
-     * 				else
-     * 				{
-     * 					stack cannot be divided
-     * 					MPI_Send (try another CPU)
-     * 				}
-     * 			}
-     * 			case (pesek received)
-     * 			{
-     * 				if (master)
-     * 				{
-     * 					if (pesek white)
-     * 					{
-     * 						process rest of my stack
-     * 						MPI_Send (finalise the end of computation for all other CPUs)
-     * 					}
-     * 					else (pesek black)
-     * 					{
-     * 						MPI_Send (new pesek to all CPUs of white color)
-     * 					}
-     * 				}
-     * 				else (non-master)
-     * 				{
-     *     				if (local stack empty && received pesek is white)
-     * 						MPI_Send (white pesek)
-     * 					else (=my stack is not empty || another CPU has already changed pesek to black)
-     * 						MPI_Send (black pesek) 
-     * 				}
-     * 			}
-     * 			case (finish detected by P0)
-     * 			{
-     * 				if (processor ID != 0)
-     *	 				MPI_Send (best solution to P0)
-     * 			}
-     * 		 }
-     * 		 else (no message received)
-     * 		 {
-     * 		    if (local stack empty)
-     * 			{
-     * 			   choose random CPU asking him for some work // nebo to implementovat jako ACŽ-AHD asynchronní cyklické žádosti před03/sl28
-     * 			   blocking MPI_Recv
-     * 			   processor received stack
-     * 			   continue with the outer 'for' loop
-     * 			}
-     * 			else (local stack not empty)
-     * 			{
-     * 			   continue with the outer 'for' loop
-     * 			}
-     * 		 }
-     *    }
-     * }     
-     * 
-     * 
+    /* 
+     * ALGORITMUS
      */
-
-    /* ALGORITMUS */
     while (!finishFlag) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
             /*
@@ -511,9 +476,9 @@ int main(int argc, char** argv) {
                 break; // vyskoci z totohle whilu kterej zada o praci // sekvencne nema koho pozadat
             }
 
-            // 1) poslat white token pokud ho mam a prisel white
-            // 2) pozadat o data
-            // 3) obslouzit zpravy
+            // 1) vyresit token - pripadne ukonceni vypoctu
+            // 2) pozadat o praci - aby mohl pokracovat
+            // 3) obsluhovat prichazejici zpravy - dokola aby nedoslo k deadlocku
 
 
             // 1) TOKEN
@@ -521,15 +486,13 @@ int main(int argc, char** argv) {
                 if (haveToken) {
                     if (tokenColor == WHITE) { // vratil se mi bilej takze nikdo nema praci, ukonci
 
-                        char dummy = 1;
                         for (int i = 1; i < noIDs; i++) { // send finish message to all other process
-                            MPI_Send(&dummy, 1, MPI_CHAR, i, MSG_FINISH, MPI_COMM_WORLD);
+                            sendFinish(i);
                         }
 
                         finishFlag = true; // finish 
-                        // break;// ale asi by mozna měl odpovedet na zpravy jeste (co kdyby nekdo blokujicně čekal na praci zrovna od Mastera)
-                        break; // teď už je to v pohodě nikde necekam blokujicne, pouzivam sleep místo toho
-                    } else {
+                        break; // teď už je to v pohodě nikde necekam blokujicne
+                    } else { // obarvi na bilo a posli znovu
                         tokenColor = WHITE;
                         sendToken(tokenColor, false, workSentToLower);
                         haveToken = false;
@@ -546,18 +509,18 @@ int main(int argc, char** argv) {
             // 2) DONOR REQUEST
             int donor;
             if (!finishFlag) { // nezadat praci pokud koncim ale musim vyresit dotazy
-                donor = requestWork();
+                donor = getDonor();
+                sendWorkRequest(donor);
             }
 
 
             // 3) HANDLE MESSAGES
-
-            bool recievedResponse;
+            bool receivedResponse;
             while (true) { // abych pockal na work response
 
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Handle messages." << endl;
 
-                recievedResponse = false;
+                receivedResponse = false;
                 do { // mohlo prijit vic pozadavku
 
                     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &comm_flag, &comm_status);
@@ -565,35 +528,32 @@ int main(int argc, char** argv) {
                     if (comm_flag) { // prisla zprava
 
                         switch (comm_status.MPI_TAG) {
-                            case MSG_WORK_REQUEST: // nemam dostatek prace
-                                recieveDummy();
-                                if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
-                                sendNoWork(comm_status.MPI_SOURCE);
+                            case MSG_WORK_REQUEST:
+                                receiveWorkRequest(comm_status.MPI_SOURCE);
+                                sendNoWorkResponse(comm_status.MPI_SOURCE); // nemam dostatek prace
                                 break;
 
                             case MSG_WORK_RESPONSE: // prisla mi zpatky odpoved (nemusi v ni bejt ale prace)
-                                recievedResponse = true;
+                                receivedResponse = true;
                                 delete myStack;
-                                myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
+                                myStack = receiveWorkResponse(donor, &comm_request, comm_requestValidity);
                                 break;
 
                             case MSG_TOKEN:
-                                tokenColor = recieveToken();
+                                tokenColor = receiveToken();
                                 haveToken = true;
                                 break;
 
                             case MSG_FINISH:
-                                recieveDummy();
-                                // comm_flag = 0; // ani nedoresi vsechny zpravy // prijde mi nebezpecne
-                                if (verbose || verboseProcessCommunication) cout << myPrefix << "Recieved finish message." << endl;
-                                finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
+                                receiveFinish();
+
+                                comm_flag = 0; // uz by mozna nemusel doresovat ani ostatni zpravy protoze kdyz MSG_FINISH dostane jeden dostanou ji vsichni
+                                finishFlag = true; // ukoncujici podminka celeho algoritmu
                                 break;
 
                             case MSG_SOLUTION:
-                                if (finishFlag) { // projistotu kdyby nas napadlo posilat si nej reseni i v prubehu, tak me zajimaj az ty uplne koncovy
-                                    gatheredSolutins++;
-                                }
-                                myCurrField = receiveSolution(smallBuffer);
+                                gatheredSolutins++;
+                                myCurrField = receiveSolution(&comm_request, comm_requestValidity);
                                 improveSolution(myBestField, myCurrField);
                                 break;
 
@@ -604,7 +564,7 @@ int main(int argc, char** argv) {
                     }
                 } while (comm_flag);
 
-                if (!recievedResponse && !finishFlag) { // jeste jsem nedostal odpoved na zadost o praci -> je treba pockat na odpoved
+                if (!receivedResponse && !finishFlag) { // jeste jsem nedostal odpoved na zadost o praci -> je treba pockat na odpoved
                     if (verbose || verboseProcessCommunication) cout << myPrefix << "No more messages, but still do not have work response. Sleep..." << endl;
                     usleep(SLEEP_TIME);
                     continue;
@@ -617,16 +577,8 @@ int main(int argc, char** argv) {
                 break;
             }
 
-            /*
-            // pokud stale nemam praci (zatim jsem nedostal odpoved nebo jsem dostal odpoved ve ktery prace nebyla) tak blokujicne cekam
-            if (myStack == NULL || myStack->isEmpty()) {
-                delete myStack;
-                myStack = recieveWork(workBuffer, donor, &comm_request, comm_request_validity);
-            }
-             */
-
             if (myStack != NULL) { // asi by null bejt nikdy neměl ale projistotu
-                myCurrField = myStack->pop(); // tim zajistím vyskočení z cyklu
+                myCurrField = myStack->pop(); // pokud jsem dostal praci zajistím tim vyskočení z cyklu
             }
             // else budu cyklus opakovat (zazadam noveho, odpovim na zpravy a cekam na praci)
         }
@@ -643,10 +595,14 @@ int main(int argc, char** argv) {
             for (int i = 1; i < noIDs; i++) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start Field to process " << i << "." << endl;
 
+
+                /* TODO az bude minimal divide pouzit normalne receive work */
                 Fout = myStack->popBottom(); // místo tohohle divide stack na n částí kdy jedna tu zůstane ostatní pošlu
                 comm_pos = 0;
-                Fout->pack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
-                MPI_Send(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_RESPONSE, MPI_COMM_WORLD);
+                Fout->pack(workBuffer, WORK_BUFFER_SIZE, &comm_pos);
+                //MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_RESPONSE, MPI_COMM_WORLD);
+                MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_request);
+                comm_requestValidity = true;
 
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent start Field to process " << i << "." << endl;
 
@@ -673,12 +629,11 @@ int main(int argc, char** argv) {
                 if (comm_flag) { // prisel pozadavek na praci
                     anyRequest = true;
 
-                    recieveDummy();
-                    if (verbose || verboseProcessCommunication) cout << myPrefix << "Process " << comm_status.MPI_SOURCE << " request work." << endl;
+                    receiveWorkRequest(comm_status.MPI_SOURCE);
 
-					if (verbose || verboseProcessCommunication) divideStackCalled++;
+                    if (verbose || verboseProcessCommunication) divideStackCalled++;
                     FieldStack* FSout = myStack->divide();
-                    sendWork(workBuffer, FSout, comm_status.MPI_SOURCE, &comm_request, comm_request_validity);
+                    sendWorkResponse(FSout, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
 
                     delete FSout;
                 }
@@ -697,26 +652,11 @@ int main(int argc, char** argv) {
 
     /* Master */
     if (AM_MASTER) { // Master počkám na zprávy od Slaves a vypíšu řešení
-        char isNull;
-
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Gathering rest of best Fields from other processes." << endl;
 
         for (int i = 1; i < noIDs - gatheredSolutins; i++) { // pockam jeste na zbytek reseni (ne ty ktery neprisli kdyz jsem obsluhoval posledni zpravy)
-            myCurrField = receiveSolution(smallBuffer);
+            myCurrField = receiveSolution(&comm_request, comm_requestValidity);
             improveSolution(myBestField, myCurrField);
-            /*
-            comm_pos = 0;
-
-            MPI_Recv(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MPI_ANY_SOURCE, MSG_SOLUTION, MPI_COMM_WORLD, &comm_status);
-
-            MPI_Unpack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
-            if (isNull == 0) {
-                myCurrField = Field::unpack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
-                improve(myBestField, myCurrField);
-            }
-
-            if (verbose || verboseProcessCommunication) cout << myPrefix << "Received best Field from process " << comm_status.MPI_SOURCE << "." << endl;
-             * */
         }
 
         cout << "-------------------- SOLUTION --------------------" << endl;
@@ -731,29 +671,8 @@ int main(int argc, char** argv) {
         cout << "Calculation took " << (t_end - t_start) << " sec." << endl;
         cout << "-------------------- /SOLUTION --------------------" << endl;
 
-
-
     } else { // Slaves pošlou svoje řešení
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending my best Field to Master." << endl;
-
-        char isNull; // s boolem nejak neslo
-        if (myBestField != NULL) {
-            isNull = 0;
-            comm_pos = 0;
-
-			//cout << myPrefix << "bestField perimeter sum: " << myBestField->getPerimetrSum() << endl;
-            MPI_Pack(&isNull, 1, MPI_CHAR, smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, MPI_COMM_WORLD);
-            myBestField->pack(smallBuffer, SMALL_BUFFER_SIZE, &comm_pos);
-        } else { // teoreticky muze nastat
-            isNull = 1;
-            comm_pos = 0;
-
-			//cout << myPrefix << "bestField perimeter sum: " << "UNDEF" << endl;
-            MPI_Pack(&isNull, 1, MPI_CHAR, smallBuffer, SMALL_BUFFER_SIZE, &comm_pos, MPI_COMM_WORLD);
-        }
-        MPI_Send(smallBuffer, SMALL_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
-		
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent my best Field to Master." << endl;
+        sendSolution(myBestField);
     }
 
 
@@ -762,11 +681,11 @@ int main(int argc, char** argv) {
     delete myStack; // clean-up
 
     /* shut down MPI */
-    
+
     // each CPU displays how many times stack was divided
-    sleep (1);
+    sleep(1);
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Divided stack: " << divideStackCalled << " times." << endl;
-    
+
     MPI_Finalize();
 
     exit(EXIT_SUCCESS);
