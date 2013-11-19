@@ -82,31 +82,31 @@ void Field::fill(istream &in) {
 
 // destruktivni pro horsi reseni
 bool improveSolution(Field* &best, Field* &possiblyBetter) {
-	if (verbose || verboseProcessCommunication) {
-		if (best) 
-			cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
-		else cout << "Best perimeter sum: " << "UNDEF" << endl;
-		if (possiblyBetter)
-			cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
-		else cout << "Possibly better perimeter sum: " << "UNDEF" << endl;
-	}
-    if(possiblyBetter == NULL) {
+    if (verbose || verboseProcessCommunication) {
+        if (best)
+            cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
+        else cout << "Best perimeter sum: " << "UNDEF" << endl;
+        if (possiblyBetter)
+            cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
+        else cout << "Possibly better perimeter sum: " << "UNDEF" << endl;
+    }
+    if (possiblyBetter == NULL) {
         return false;
     }
-    
+
     if (best == NULL || possiblyBetter->getPerimetrSum() < best->getPerimetrSum()) {
         delete best; // clean-up
         best = possiblyBetter;
         possiblyBetter = NULL; // projistotu abych si timhle pointerem nesmazal lepsi reseni
         return true;
     } else {
-        delete possiblyBetter; 
+        delete possiblyBetter;
         possiblyBetter = NULL; // aby pokud ho mazu nekde venku to nehodilo chybu
         return false;
     }
 }
 
-bool Field::solveRectShapes(FieldStack* stack) {
+bool Field::solveRectShapes(FieldStack* stack, Field* bestSolution) {
     if (verbose) cout << "SolvingRectShapes for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
 
     Field* newField;
@@ -118,7 +118,10 @@ bool Field::solveRectShapes(FieldStack* stack) {
     for (int i = 1; i < shapes.size(); i++) { // use other shapes for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setShape(shapes[i]);
-        stack->push(newField);
+
+        if (bestSolution == NULL || newField->getPerimetrSum() < bestSolution->getPerimetrSum()) { // do not push worse solutions than currently the best
+            stack->push(newField);
+        }
     }
 
     return true; // every rectangle has at least one possible shape
@@ -152,7 +155,7 @@ vector<Vector2D> Field::findRectShapes() {
     return shapes;
 }
 
-bool Field::solveRectPositions(FieldStack* stack) {
+bool Field::solveRectPositions(FieldStack* stack, Field* bestSolution) {
     if (verbose) cout << "SolvingRectPositions for rectangle: " << getRectangles()->getCurrent()->toString() << endl;
 
     Field* newField;
@@ -168,7 +171,10 @@ bool Field::solveRectPositions(FieldStack* stack) {
     for (int i = 1; i < poss.size(); i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setPosition(poss[i]);
-        stack->push(newField);
+        
+        if (bestSolution == NULL || newField->getPerimetrSum() < bestSolution->getPerimetrSum()) { // do not push worse solutions than currently the best
+            stack->push(newField);
+        }
     }
 
     return true;
@@ -264,7 +270,7 @@ void Field::colorField() {
 /*
  * for borders: http://www.theasciicode.com.ar/extended-ascii-code/box-drawing-character-ascii-code-196.html
  */
-string Field::toString(bool fieldArrayOnly) const {
+string Field::toString(bool includeFieldArray, bool includeRectangleList) const {
     ostringstream ss;
 
     ss << "<FIELD>" << endl;
@@ -272,47 +278,49 @@ string Field::toString(bool fieldArrayOnly) const {
     ss << "no rectangles: " << rects->getSize() << endl;
     ss << "perimeter sum: " << rects->getPerimeterSum() << endl;
 
-    // top border
-    ss << "┌";
-    for (int i = 0; i < dimY - 1; i++) {
-        ss << "────┬";
-    }
-    ss << "────┐" << endl;
+    if (includeFieldArray) {
+        // top border
+        ss << "┌";
+        for (int i = 0; i < dimY - 1; i++) {
+            ss << "────┬";
+        }
+        ss << "────┐" << endl;
 
-    for (int i = 0; i < dimX; i++) {
-        ss << "│";
-        for (int j = 0; j < dimY; j++) {
-            if (fieldArray[i][j]) {
-                if (fieldArray[i][j] < 0) { // is color
-                    ss << setw(3) << (char) ((-fieldArray[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
-                } else { // is area
-                    ss << setw(3) << fieldArray[i][j] << " │";
+        for (int i = 0; i < dimX; i++) {
+            ss << "│";
+            for (int j = 0; j < dimY; j++) {
+                if (fieldArray[i][j]) {
+                    if (fieldArray[i][j] < 0) { // is color
+                        ss << setw(3) << (char) ((-fieldArray[i][j] - 1) % 26 + 'A') << " │"; // 26 colors then repeat
+                    } else { // is area
+                        ss << setw(3) << fieldArray[i][j] << " │";
+                    }
+                } else { // is empty
+                    ss << "    │";
                 }
-            } else { // is empty
-                ss << "    │";
+            }
+            ss << endl;
+
+            // inner border
+            if (i != dimX - 1) {
+                ss << "├";
+                for (int i = 0; i < dimY - 1; i++) {
+                    ss << "────┼";
+                }
+                ss << "────┤" << endl;
             }
         }
-        ss << endl;
 
-        // inner border
-        if (i != dimX - 1) {
-            ss << "├";
-            for (int i = 0; i < dimY - 1; i++) {
-                ss << "────┼";
-            }
-            ss << "────┤" << endl;
+        // bottom border
+        ss << "└";
+        for (int i = 0; i < dimY - 1; i++) {
+            ss << "────┴";
         }
+        ss << "────┘" << endl;
     }
 
-    // bottom border
-    ss << "└";
-    for (int i = 0; i < dimY - 1; i++) {
-        ss << "────┴";
-    }
-    ss << "────┘" << endl;
-
-    if (fieldArrayOnly != true) {
-        ss << rects->toString(); // Vypisovat i RectList
+    if (includeRectangleList) {
+        ss << rects->toString(); 
     }
 
     ss << "</FIELD>" << endl;
@@ -321,7 +329,7 @@ string Field::toString(bool fieldArrayOnly) const {
 }
 
 string Field::toString() const {
-    return toString(false);
+    return toString(true, true);
 }
 
 void Field::pack(void *buffer, int bufferSize, int *bufferPos) {

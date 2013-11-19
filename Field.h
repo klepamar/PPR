@@ -28,15 +28,15 @@ public:
     friend bool improveSolution(Field* &best, Field* &possiblyBetter);
 
     // use current rectangle
-    bool solveRectShapes(FieldStack* stack);
+    bool solveRectShapes(FieldStack* stack, Field* bestSolution);
     std::vector<Vector2D> findRectShapes();
-    bool solveRectPositions(FieldStack* stack);
+    bool solveRectPositions(FieldStack* stack, Field* bestSolution);
     std::vector<Vector2D> findRectPositions();
     void colorField(Rectangle* rectangle, int color);
     void colorField();
 
     std::string toString() const;
-    std::string toString(bool fieldArrayOnly) const;
+    std::string toString(bool includeFieldArray, bool includeRectangleList) const;
     
     void pack(void *outbuffer, int bufferSize, int *bufferPosition);
     static Field* unpack(void *inbuffer, int bufferSize, int *bufferPosition);    

@@ -172,7 +172,7 @@ void sendNoWorkResponse(int acceptor) {
 }
 
 /* in/out lastRequestValidity, lastRequestValidity is changed */
-void sendWorkResponse(FieldStack* stackOut, int acceptor, MPI_Request* lastRequest, bool &lastRequestValidity) {
+void sendWorkResponse(FieldStack* stackOut, Field* bestSolution, int acceptor, MPI_Request* lastRequest, bool &lastRequestValidity) {
     int pos = 0;
     MPI_Status status;
 
@@ -189,6 +189,7 @@ void sendWorkResponse(FieldStack* stackOut, int acceptor, MPI_Request* lastReque
 
     char isNull = 0; // mean I sent work
     MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+    bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos); // pozilam i nej reseni
     stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
 
     MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, lastRequest);
@@ -198,7 +199,7 @@ void sendWorkResponse(FieldStack* stackOut, int acceptor, MPI_Request* lastReque
 }
 
 /* in/out lastRequestValidity, lastRequestValidity is changed */
-FieldStack* receiveWorkResponse(int donor, MPI_Request* lastRequest, bool &lastRequestValidity) {
+FieldStack* receiveWorkResponse(Field* &bestSolution, int donor, MPI_Request* lastRequest, bool &lastRequestValidity) {
     int pos = 0;
     MPI_Status status;
 
@@ -216,7 +217,10 @@ FieldStack* receiveWorkResponse(int donor, MPI_Request* lastRequest, bool &lastR
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NO work from process " << status.MPI_SOURCE << endl;
         return NULL;
     } else { // prace prisla
+        Field* BSin = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
+        improveSolution(bestSolution, BSin); // zlepsim si svoje nej reseni podle nej reseni toho kdo mi poslal praci
         FieldStack* FSin = FieldStack::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
+        
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME work from process " << status.MPI_SOURCE << endl;
         return FSin;
     }
@@ -346,6 +350,7 @@ int main(int argc, char** argv) {
     int iterationCounter = 0;
 
     int gatheredSolutins = 0;
+    int noStartedIDs = 1; // Master vzdy
     int divideStackCalled = 0;
 
     /* start up MPI */
@@ -387,7 +392,7 @@ int main(int argc, char** argv) {
 
         cout << "-------------------- TASK --------------------" << endl;
         cout << "Number of process: " << noIDs << endl;
-        cout << myCurrField->toString(true);
+        cout << myCurrField->toString(true, false);
         cout << "-------------------- /TASK --------------------" << endl;
 
     } else { // slaves wait (blocking way) for first data from master
@@ -439,7 +444,7 @@ int main(int argc, char** argv) {
                  * Řeší tvary aktuálního obdélníku.
                  * První tvar použije pro tento field ostatní pro nové fieldy které vloží na stack.
                  */
-                myCurrField->solveRectShapes(myStack); // vždy existuje alespoň jeden tvar
+                myCurrField->solveRectShapes(myStack, myBestField); // vždy existuje alespoň jeden tvar
             }
 
             /*
@@ -450,7 +455,7 @@ int main(int argc, char** argv) {
                  * Řeší pozice aktuálního obdélníku.
                  * První pozici použije pro tento field, ostatní pro nové fieldy které vloží na stack.
                  */
-                if (myCurrField->solveRectPositions(myStack) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
+                if (myCurrField->solveRectPositions(myStack, myBestField) == false) { // neexistuje žádná možná pozice => končím DFS, řešení nenalezeno
                     if (verbose) cout << "Ending DFS, solution NOT found." << endl;
 
                     break;
@@ -538,7 +543,7 @@ int main(int argc, char** argv) {
                             case MSG_WORK_RESPONSE: // prisla mi zpatky odpoved (nemusi v ni bejt ale prace)
                                 receivedResponse = true;
                                 delete myStack;
-                                myStack = receiveWorkResponse(donor, &comm_request, comm_requestValidity);
+                                myStack = receiveWorkResponse(myBestField, donor, &comm_request, comm_requestValidity);
                                 break;
 
                             case MSG_TOKEN:
@@ -635,7 +640,7 @@ int main(int argc, char** argv) {
 
                     if (verbose || verboseProcessCommunication) divideStackCalled++;
                     FieldStack* FSout = myStack->divide();
-                    sendWorkResponse(FSout, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
+                    sendWorkResponse(FSout, myBestField, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
 
                     delete FSout;
                 }
@@ -663,7 +668,7 @@ int main(int argc, char** argv) {
 
         cout << "-------------------- SOLUTION --------------------" << endl;
         if (myBestField != NULL) {
-            cout << myBestField->toString(true);
+            cout << myBestField->toString(true, false);
         } else {
             cout << "Solution does not exist!" << endl; // muze nastat
         }
