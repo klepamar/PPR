@@ -28,11 +28,9 @@ using namespace std;
 
 #define ZERO_BUFFER_SIZE        0
 #define TINY_BUFFER_SIZE        1 // for empty messages // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
-#define SMALL_BUFFER_SIZE       999 // mene nez 1KB aby se posilalo neblokujicim zpusobem
 #define WORK_BUFFER_SIZE        8 * 1000000 // k * 1MB
 
 char tinyBuffer[TINY_BUFFER_SIZE];
-char smallBuffer[SMALL_BUFFER_SIZE];
 char workBuffer[WORK_BUFFER_SIZE];
 
 #define MSG_WORK_REQUEST        1000
@@ -265,14 +263,17 @@ void receiveFinish() { // odesilatel jen Master ale nechavam projistotu ANY
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving finish message." << endl;
 
-    MPI_Recv(smallBuffer, 0, MPI_CHAR, MPI_ANY_SOURCE, MSG_FINISH, MPI_COMM_WORLD, &status);
+    MPI_Recv(tinyBuffer, ZERO_BUFFER_SIZE, MPI_CHAR, MPI_ANY_SOURCE, MSG_FINISH, MPI_COMM_WORLD, &status);
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Received finish message from process " << status.MPI_SOURCE << "." << endl;
 }
 
-void sendSolution(Field* bestSolution) { // prijemce je Master
+void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastRequestValidity) { // prijemce je vzdy Master
     int pos = 0;
+    
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending best Field to Master." << endl;
+    
+    waitForLastWorkRequest(lastRequest, lastRequestValidity);
 
     char isNull;
     if (bestSolution != NULL) {
@@ -281,6 +282,7 @@ void sendSolution(Field* bestSolution) { // prijemce je Master
         MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
         bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
         MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
+        lastRequestValidity = true;
         
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
     } else { // nema zadne reseni
@@ -391,7 +393,7 @@ int main(int argc, char** argv) {
     } else { // slaves wait (blocking way) for first data from master
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
-
+        // neni treba cekat je to poprve co poouziju workBuffer
         /* TODO az bude minimalDivide tak pouzit normalne receive work */
         MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_status);
         comm_pos = 0;
@@ -595,8 +597,8 @@ int main(int argc, char** argv) {
             for (int i = 1; i < noIDs; i++) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start Field to process " << i << "." << endl;
 
-
-                /* TODO az bude minimal divide pouzit normalne receive work */
+                waitForLastWorkRequest(&comm_request, comm_requestValidity);
+                /* TODO az bude minimal divide pouzit normalne receive work, slo by i tou redukci*/
                 Fout = myStack->popBottom(); // místo tohohle divide stack na n částí kdy jedna tu zůstane ostatní pošlu
                 comm_pos = 0;
                 Fout->pack(workBuffer, WORK_BUFFER_SIZE, &comm_pos);
@@ -672,7 +674,7 @@ int main(int argc, char** argv) {
         cout << "-------------------- /SOLUTION --------------------" << endl;
 
     } else { // Slaves pošlou svoje řešení
-        sendSolution(myBestField);
+        sendSolution(myBestField, &comm_request, comm_requestValidity);
     }
 
 
