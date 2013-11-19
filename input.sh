@@ -3,7 +3,7 @@
 # check all files in the form of vstup_<no>.txt
 # result for every input is expected to be found in vstup_<no>.result
 
-for file in $(ls vstup_[0-9]*.txt)
+for file in $(ls vstup_*.txt)
 do
 	resultFile=$(echo $file | sed 's/\(.*\).txt/\1.result/')
 	if [[ -f $resultFile ]]
