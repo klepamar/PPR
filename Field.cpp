@@ -25,6 +25,8 @@ Field::Field(Vector2D dimension) : dimX(dimension.getX()), dimY(dimension.getY()
 Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
     perSum = orig.perSum; // copy simple element
     this->rects = new RectList(*(orig.rects)); //call copy-constructor
+    this->fieldArray = NULL; // protoze po copy-construktoru ukladam prvek stejne vzdycky na stack kde bych to smazal
+    /*
     this->fieldArray = new int*[this->dimX]; //create a new field
     for (int i = 0; i < this->dimX; i++) {
         fieldArray[i] = new int[this->dimY];
@@ -35,16 +37,11 @@ Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
             this->fieldArray[i][j] = orig.fieldArray[i][j];
         }
     }
+    */
 }
 
 Field::~Field() {
-    for (int i = 0; i < dimX; i++) {
-        delete[] fieldArray[i]; // delete array of int
-        fieldArray[i] = NULL;
-    }
-    delete[] fieldArray; // delete array of int*
-    fieldArray = NULL;
-
+    deleteFieldArray();
     delete rects; // call destructor of RectList
     rects = NULL;
 }
@@ -80,7 +77,38 @@ void Field::fill(istream &in) {
     }
 }
 
+void Field::deleteFieldArray() {
+    if (fieldArray != NULL) {
+        for (int i = 0; i < dimX; i++) {
+            delete[] fieldArray[i]; // delete array of int
+            fieldArray[i] = NULL;
+        }
+        delete[] fieldArray; // delete array of int*
+        fieldArray = NULL;
+    }
+}
+
+void Field::restoreFieldArray() {
+
+    // alloc memmory for FieldArray and reset it to zeros
+    this->fieldArray = new int*[this->dimX];
+    for (int i = 0; i < this->dimX; i++) {
+        fieldArray[i] = new int[this->dimY];
+        for (int j = 0; j < this->dimY; j++) {
+            this->fieldArray[i][j] = 0;
+        }
+    }
+
+    this->rects->toFirst(); // na zacatek
+    while (this->rects->getCurrent() != NULL) { // vsechny projit
+        this->colorField(); // vybarvi current // perSum, fieldArray
+        this->rects->toNext();
+    }
+    this->rects->toUnpositioned(); // vratit se na current;
+}
+
 // destruktivni pro horsi reseni
+
 bool improveSolution(Field* &best, Field* &possiblyBetter) {
     if (verbose || verboseProcessCommunication) {
         if (best)
@@ -171,7 +199,7 @@ bool Field::solveRectPositions(FieldStack* stack, Field* bestSolution) {
     for (int i = 1; i < poss.size(); i++) { // use other positions for new copy-constructed fields pushed to stack for further solving
         newField = new Field(*this);
         newField->getRectangles()->getCurrent()->setPosition(poss[i]);
-        
+
         if (bestSolution == NULL || newField->getPerimetrSum() < bestSolution->getPerimetrSum()) { // do not push worse solutions than currently the best
             stack->push(newField);
         }
@@ -320,7 +348,7 @@ string Field::toString(bool includeFieldArray, bool includeRectangleList) const 
     }
 
     if (includeRectangleList) {
-        ss << rects->toString(); 
+        ss << rects->toString();
     }
 
     ss << "</FIELD>" << endl;

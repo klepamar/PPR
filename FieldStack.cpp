@@ -42,6 +42,8 @@ FieldStack::~FieldStack() {
 void FieldStack::push(Field* field) {
     if (verbose || verboseStackSize) cout << myPrefix << "Pushing stack: " << this->size << "++" << endl;
 
+    field->deleteFieldArray(); // do not store fiedlArray on stack
+
     // create a new FieldStackItem
     FieldStackItem *newItem = new FieldStackItem(field);
 
@@ -79,8 +81,12 @@ Field* FieldStack::pop() {
     }
     this->size = this->size - 1;
 
+    // delete FieldStackItem
     origTopItem->field = NULL;
     delete origTopItem;
+
+    // restore fieldArray
+    origTopField->restoreFieldArray();
 
     return origTopField;
 }
@@ -104,8 +110,12 @@ Field* FieldStack::popBottom() {
     }
     this->size--;
 
+    // delete FieldStackItem
     origBottomItem->field = NULL;
     delete origBottomItem;
+
+    // restore fieldArray
+    origBottomField->restoreFieldArray();    
 
     return origBottomField;
 }
@@ -156,140 +166,138 @@ void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor n
 }
 
 FieldStack* FieldStack::divideByOne() {
-	if (verbose || verboseProcessCommunication) {
-		// include information about RectList
-		FieldStackItem* tmp = this->bottomItem;
-		while (tmp) {
-			cout << "<-" << tmp->field->getRectangles()->getCurrentId();
-			tmp = tmp->upper;
-		}
-		cout << endl;
-	}
+    if (verbose || verboseProcessCommunication) {
+        // include information about RectList
+        FieldStackItem* tmp = this->bottomItem;
+        while (tmp) {
+            cout << "<-" << tmp->field->getRectangles()->getCurrentId();
+            tmp = tmp->upper;
+        }
+        cout << endl;
+    }
 
-	// return new stack iff stack size is at least 2
-	FieldStack* newStack = new FieldStack();
-	
-	if (this->size <= 1) {
-		return NULL;
-	}
-	
-	// flag indicating the first iteration
-	bool start = true;
-	// flag indicating when the first rank comaprison is equal
-	bool firstEqualComparison = true;
-	// pointers to respective stacks (where "below" pointer will point to)
-	FieldStackItem* origStackLink;
-	FieldStackItem* newStackLink;
-	// two elements in a row of the stack
-	FieldStackItem* current = this->bottomItem;
-	FieldStackItem* previous;
-	while (current) {
-		if (start) {
-			newStack->bottomItem = current;
-			newStackLink = current;
-			origStackLink = current->upper;
-			previous = current;
-			current = current->upper;
-			start = false;
-			continue;
-		}
-		// hopefully, solution to segfault - always leave at least 1 element in the original stack
-		// if no element being part of the original stack after traversing (n-1) elements, put n-th element into the original stack
-		if (current->upper == NULL && origStackLink == current) {
-			this->topItem = this->bottomItem = current;
-			current->upper = current->below = NULL;
-			newStack->topItem = newStackLink;
-			newStack->topItem->upper = NULL;
-			this->recalculateSize(); // should produce = 1
-			newStack->recalculateSize(); // should produce = n-1
-			goto NAVESTIE;
-		}
-		
-		// compare ranks of current and previous elements
-		if (current->field->getRectangles()->getCurrentId() != previous->field->getRectangles()->getCurrentId()) {
-			// if ranks differ, current element will be part of the new stack
-			current->below = newStackLink;
-			newStackLink->upper = current;
-			newStackLink = current;
-			// move origStackLink upwards until the first element of the stack is found
-			if (origStackLink == newStackLink) {
-				origStackLink = newStackLink->upper;
-			}
-		}
-		else {
-			// if ranks do not differ
-			// during first comparison set lowest element belonging to the original stack with NULL "below" pointer
-			if (firstEqualComparison) {
-				current->below = NULL;
-				this->bottomItem = current;
-				origStackLink = current;
-				firstEqualComparison = false;
-			}
-			else {
-				current->below = origStackLink;
-				origStackLink->upper = current;
-				origStackLink = current;
-			}
-		}
-		// traverse up towards the top of the stack
-		previous = current;
-		current = current->upper;
-	}
-	if (origStackLink == NULL) {
-		// current stack will remain empty because all ranks were included exactly once in the original stack
-		this->bottomItem = NULL;
-	}
-	this->topItem = origStackLink;
-	this->topItem->upper = NULL;
-	newStack->topItem = newStackLink;
-	newStack->topItem->upper = NULL;
-	// change value of "size" varaible for both stacks
-	this->recalculateSize();
-	newStack->recalculateSize();
+    // return new stack iff stack size is at least 2
+    FieldStack* newStack = new FieldStack();
 
-NAVESTIE:	
-	// verify that stack can be traversed using both links ("upper" and "below") for both new and original stack
-	if (verbose || verboseProcessCommunication) {
-		FieldStackItem* tmpOrig = this->topItem;
-		int cnt = 0;
-		
-		cout << "Original stack (from top to bottom): ";
-		while (tmpOrig) {
-			cnt++;
-			tmpOrig = tmpOrig->below;
-		}
-		cout << cnt << endl;
-		
-		cnt = 0;
-		tmpOrig = this->bottomItem;
-		cout << "Original stack (from bottom to top): ";
-		while (tmpOrig) {
-			cnt++;
-			tmpOrig = tmpOrig->upper;
-		}
-		cout << cnt << endl;
-		
-		cnt = 0;
-		FieldStackItem* tmpNew = newStack->topItem;
-		cout << "New stack (from top to bottom): ";
-		while (tmpNew) {
-			cnt++;
-			tmpNew = tmpNew->below;
-		}
-		cout << cnt << endl;
-		
-		cnt = 0;
-		tmpNew = newStack->bottomItem;
-		cout << "New stack (from bottom to top): ";
-		while (tmpNew) {
-			cnt++;
-			tmpNew = tmpNew->upper;
-		}
-		cout << cnt << endl;
-	}
-	
-	// return new stack which consists of, at least, 1 element
-	return newStack;
+    if (this->size <= 1) {
+        return NULL;
+    }
+
+    // flag indicating the first iteration
+    bool start = true;
+    // flag indicating when the first rank comaprison is equal
+    bool firstEqualComparison = true;
+    // pointers to respective stacks (where "below" pointer will point to)
+    FieldStackItem* origStackLink;
+    FieldStackItem* newStackLink;
+    // two elements in a row of the stack
+    FieldStackItem* current = this->bottomItem;
+    FieldStackItem* previous;
+    while (current) {
+        if (start) {
+            newStack->bottomItem = current;
+            newStackLink = current;
+            origStackLink = current->upper;
+            previous = current;
+            current = current->upper;
+            start = false;
+            continue;
+        }
+        // hopefully, solution to segfault - always leave at least 1 element in the original stack
+        // if no element being part of the original stack after traversing (n-1) elements, put n-th element into the original stack
+        if (current->upper == NULL && origStackLink == current) {
+            this->topItem = this->bottomItem = current;
+            current->upper = current->below = NULL;
+            newStack->topItem = newStackLink;
+            newStack->topItem->upper = NULL;
+            this->recalculateSize(); // should produce = 1
+            newStack->recalculateSize(); // should produce = n-1
+            goto NAVESTIE;
+        }
+
+        // compare ranks of current and previous elements
+        if (current->field->getRectangles()->getCurrentId() != previous->field->getRectangles()->getCurrentId()) {
+            // if ranks differ, current element will be part of the new stack
+            current->below = newStackLink;
+            newStackLink->upper = current;
+            newStackLink = current;
+            // move origStackLink upwards until the first element of the stack is found
+            if (origStackLink == newStackLink) {
+                origStackLink = newStackLink->upper;
+            }
+        } else {
+            // if ranks do not differ
+            // during first comparison set lowest element belonging to the original stack with NULL "below" pointer
+            if (firstEqualComparison) {
+                current->below = NULL;
+                this->bottomItem = current;
+                origStackLink = current;
+                firstEqualComparison = false;
+            } else {
+                current->below = origStackLink;
+                origStackLink->upper = current;
+                origStackLink = current;
+            }
+        }
+        // traverse up towards the top of the stack
+        previous = current;
+        current = current->upper;
+    }
+    if (origStackLink == NULL) {
+        // current stack will remain empty because all ranks were included exactly once in the original stack
+        this->bottomItem = NULL;
+    }
+    this->topItem = origStackLink;
+    this->topItem->upper = NULL;
+    newStack->topItem = newStackLink;
+    newStack->topItem->upper = NULL;
+    // change value of "size" varaible for both stacks
+    this->recalculateSize();
+    newStack->recalculateSize();
+
+NAVESTIE:
+    // verify that stack can be traversed using both links ("upper" and "below") for both new and original stack
+    if (verbose || verboseProcessCommunication) {
+        FieldStackItem* tmpOrig = this->topItem;
+        int cnt = 0;
+
+        cout << "Original stack (from top to bottom): ";
+        while (tmpOrig) {
+            cnt++;
+            tmpOrig = tmpOrig->below;
+        }
+        cout << cnt << endl;
+
+        cnt = 0;
+        tmpOrig = this->bottomItem;
+        cout << "Original stack (from bottom to top): ";
+        while (tmpOrig) {
+            cnt++;
+            tmpOrig = tmpOrig->upper;
+        }
+        cout << cnt << endl;
+
+        cnt = 0;
+        FieldStackItem* tmpNew = newStack->topItem;
+        cout << "New stack (from top to bottom): ";
+        while (tmpNew) {
+            cnt++;
+            tmpNew = tmpNew->below;
+        }
+        cout << cnt << endl;
+
+        cnt = 0;
+        tmpNew = newStack->bottomItem;
+        cout << "New stack (from bottom to top): ";
+        while (tmpNew) {
+            cnt++;
+            tmpNew = tmpNew->upper;
+        }
+        cout << cnt << endl;
+    }
+
+    // return new stack which consists of, at least, 1 element
+    return newStack;
 }
 
 FieldStack* FieldStack::divide() {

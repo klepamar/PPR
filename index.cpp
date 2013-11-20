@@ -21,13 +21,13 @@ using namespace std;
 #define WORK_REQUEST_CHECK_FREQUENCY 50
 #define SMALLEST_ALLOWED_PROBLEM 2
 #define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
-#define SLEEP_TIME 50 * 1000 // microseconds
+#define SLEEP_TIME 50 * 1000 // k * 1ms
 
 #define MASTER 0
 #define AM_MASTER (myID == MASTER)
 
-#define ZERO_BUFFER_SIZE        0
-#define TINY_BUFFER_SIZE        1 // for empty messages // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
+#define ZERO_BUFFER_SIZE        0 // for empty messages
+#define TINY_BUFFER_SIZE        1 // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
 #define WORK_BUFFER_SIZE        8 * 1000000 // k * 1MB
 
 char tinyBuffer[TINY_BUFFER_SIZE];
@@ -326,7 +326,7 @@ Field* receiveSolution(MPI_Request* lastRequest, bool &lastRequestValidity) { //
 
 /**
  * 
- * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; ./ppr -f trans.txt
+ * $ ./generator a b n > gen.txt; ./transform.sh a b n gen.txt > trans.txt; mpirun -np N ./ppr -f trans.txt
  * 
  */
 int main(int argc, char** argv) {

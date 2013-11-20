@@ -25,6 +25,8 @@ public:
     RectList* getRectangles() const; // obtain a list of rectangles
     int getPerimetrSum() const;
     void fill(std::istream &in);
+    void deleteFieldArray();
+    void restoreFieldArray();
     friend bool improveSolution(Field* &best, Field* &possiblyBetter);
 
     // use current rectangle
