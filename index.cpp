@@ -193,9 +193,16 @@ void sendWorkResponse(FieldStack* stackOut, Field* bestSolution, int acceptor, M
     waitForLastWorkRequest(lastRequest, lastRequestValidity); // je nutne pockat aby byl workBuffer k pouziti
 
     char isNull = 0; // mean I sent work
-    MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
-    bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos); // pozilam i nej reseni
-    stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
+    MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD); // zapackuju ze posilam praci
+    if (bestSolution == NULL) {
+        isNull = 1;
+        MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD); // zapackuju ze neposilam best solution
+    } else {
+        isNull = 0;
+        MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD); // zapackuju ze posilam best solution
+        bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos); // zapackuju best solution
+    }
+    stackOut->pack(workBuffer, WORK_BUFFER_SIZE, &pos); // zapackuju zbytek prace
 
     MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, acceptor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, lastRequest);
     lastRequestValidity = true;
@@ -212,7 +219,7 @@ FieldStack* receiveWorkResponse(Field* &bestSolution, int donor, MPI_Request* la
 
     waitForLastWorkRequest(lastRequest, lastRequestValidity);
 
-    // blokujicim zpusobem cekam na odpoved na zadost o praci, stejne bych nemoh nic delat, jedine odpovidat na zpravy (ale na ty ktery by zpusobily deadlock jsem odpovedel)
+    // blokujicim zpusobem cekam na odpoved na zadost o praci, ale volal jsem tu funkci ve chvili kdy vim ze mi to prislo
     MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, donor, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &status);
 
     char isNull;
@@ -222,9 +229,13 @@ FieldStack* receiveWorkResponse(Field* &bestSolution, int donor, MPI_Request* la
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NO work from process " << status.MPI_SOURCE << endl;
         return NULL;
     } else { // prace prisla
-        Field* BSin = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
-        improveSolution(bestSolution, BSin); // zlepsim si svoje nej reseni podle nej reseni toho kdo mi poslal praci
-        FieldStack* FSin = FieldStack::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
+        MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
+        if (!isNull) { // prislo i best solution
+            Field* BSin = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
+            improveSolution(bestSolution, BSin); // zlepsim si svoje nej reseni podle nej reseni toho kdo mi poslal praci
+        }
+        
+        FieldStack* FSin = FieldStack::unpack(workBuffer, WORK_BUFFER_SIZE, &pos); // zbytek prace
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME work from process " << status.MPI_SOURCE << endl;
 
