@@ -44,8 +44,7 @@ char workBuffer[WORK_BUFFER_SIZE];
 #define BLACK 0
 #define TOKEN_COLOR(color) ((color) ? "white" : "black")
 
-#define DEFAULT_FILENAME "input.txt"
-
+const char* filename = "input.txt";
 bool verbose = false; // prepinac -v
 bool verboseStackSize = false; // prepinac -vs
 bool verboseProcessCommunication = false; // prepinac -vc
@@ -55,17 +54,19 @@ string myPrefix = "";
 int noIDs = -1;
 
 /* Read data from given file and initialize given field. */
-void initField(Field* &field, const char* fileName) {
+void initField(Field* &field) {
     int a, b; // a, b - dimension of field
     int n; // number of non-zero numbers
     string dummy;
     ifstream in;
 
+    cout << filename << endl;
+    
     // open file
-    in.open(fileName);
+    in.open(filename);
     if (!in.is_open()) {
         ostringstream ss;
-        ss << "Could not open a file \"" << fileName << "\"!";
+        ss << "Could not open a file \"" << filename << "\"!";
         throw ss.str();
     }
 
@@ -95,7 +96,7 @@ void initField(Field* &field, const char* fileName) {
 }
 
 /* Read arguements and process them */
-void processArguments(int argc, char** argv, const char* filename) {
+void processArguments(int argc, char** argv) {
     // cout << myPrefix << "processing " << argc << " arguments." << endl;
 
     for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
@@ -106,9 +107,7 @@ void processArguments(int argc, char** argv, const char* filename) {
         } else if (strcmp(argv[i], "-vc") == 0) {
             verboseProcessCommunication = true;
         } else if (strcmp(argv[i], "-f") == 0) {
-            if (filename != NULL) {
-                filename = argv[i + 1];
-            }
+            filename = argv[i + 1];
             i++; // skip next, already resolved
         } else if (strcmp(argv[i], "-h") == 0) {
             cout << "Usage:" << endl <<
@@ -344,7 +343,8 @@ int main(int argc, char** argv) {
     Field* myCurrField = NULL;
     Field* myBestField = NULL;
 
-    const char* filename = DEFAULT_FILENAME;
+    //char* filename = DEFAULT_FILENAME;
+    const char* filename = "input.txt";
 
     double t_start, t_end;
     int comm_pos = 0;
@@ -386,8 +386,6 @@ int main(int argc, char** argv) {
     /* find out number of processes */
     MPI_Comm_size(MPI_COMM_WORLD, &noIDs);
 
-    cout << myPrefix << "Find out myID and noIDs." << endl;
-
     /* waiting for all process, then start */
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -398,8 +396,8 @@ int main(int argc, char** argv) {
 
         // inicializace
         try {
-            processArguments(argc, argv, filename);
-            initField(myCurrField, filename);
+            processArguments(argc, argv);
+            initField(myCurrField);
         } catch (string ex) {
             cout << "Exception: " << ex << endl;
 
@@ -415,7 +413,7 @@ int main(int argc, char** argv) {
         cout << "-------------------- /TASK --------------------" << endl;
 
     } else { // slaves wait (blocking way) for first data from master
-        processArguments(argc, argv, NULL); // need to get verbose flags
+        processArguments(argc, argv); // need to get verbose flags
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
         // neni treba cekat je to poprve co poouziju workBuffer

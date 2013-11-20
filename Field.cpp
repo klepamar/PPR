@@ -117,6 +117,7 @@ void Field::restoreFieldArray() {
 // destruktivni pro horsi reseni
 
 bool improveSolution(Field* &best, Field* &possiblyBetter) {
+    /*
     if (verbose || verboseProcessCommunication) {
         if (best)
             cout << "Best perimeter sum: " << best->getPerimetrSum() << endl;
@@ -125,6 +126,7 @@ bool improveSolution(Field* &best, Field* &possiblyBetter) {
             cout << "Possibly better perimeter sum: " << possiblyBetter->getPerimetrSum() << endl;
         else cout << "Possibly better perimeter sum: " << "UNDEF" << endl;
     }
+     */ 
     if (possiblyBetter == NULL) {
         return false;
     }
