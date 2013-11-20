@@ -60,8 +60,6 @@ void initField(Field* &field) {
     string dummy;
     ifstream in;
 
-    cout << filename << endl;
-    
     // open file
     in.open(filename);
     if (!in.is_open()) {
@@ -234,19 +232,42 @@ FieldStack* receiveWorkResponse(Field* &bestSolution, int donor, MPI_Request* la
     }
 }
 
-void sendToken(char tokenColor, bool haveWork, bool &workSentToLower) { // prijemce je pevne dany
+void sendToken(char tokenColor) { // prijemce je pevne dany
     int nextProcess = (myID + 1) % noIDs;
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending token to process " << nextProcess << "." << endl;
 
-    if (haveWork || workSentToLower) {
-        tokenColor = BLACK;
-    } // else necham původní
-
     MPI_Send(&tokenColor, 1, MPI_CHAR, nextProcess, MSG_TOKEN, MPI_COMM_WORLD);
-    workSentToLower = false; // vynulovat
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent " << TOKEN_COLOR(tokenColor) << " token to process " << nextProcess << "." << endl;
+}
+
+/* 
+ *  Volat jenom pokud maji token
+ *  return: WHITE, BLACK, -1 což znamena ze se ma ukončit vypočet
+ */
+char getColorOfSendingToken(char colorOfReceivedToken, bool haveWork, bool &workSentToLower) {
+    char colorOfSendingToken;
+
+    if (AM_MASTER) {
+        if (colorOfReceivedToken == WHITE) { // vratil se mi bilej takze nikdo nema praci a je nutne ukoncit algoritmus
+            return -1;
+        } else { // prisel cernej takze ho obarvim podle toho jeslti mam praci (mensimu jsem nemohl poslat pokud jsem 0)
+            if (haveWork || workSentToLower) {
+                colorOfSendingToken = BLACK;
+            } else {
+                colorOfSendingToken = WHITE; // restartuje posilani tokenu
+            }
+        }
+    } else { // Slaves obarvi podle toho jeslti maji praci a ejslti nahoodu neposlali mensimu, jinak nechaji puvodni barvu
+        if (haveWork || workSentToLower) {
+            colorOfSendingToken = BLACK;
+        } else { // else necham původní
+            colorOfSendingToken = colorOfReceivedToken;
+        }
+    }
+    workSentToLower = false; // vynulovat
+    return colorOfSendingToken;
 }
 
 bool receiveToken() { // odesilatel je pevne dany ale pro zjednoduseni prijimam ode vsech
@@ -343,9 +364,6 @@ int main(int argc, char** argv) {
     Field* myCurrField = NULL;
     Field* myBestField = NULL;
 
-    //char* filename = DEFAULT_FILENAME;
-    const char* filename = "input.txt";
-
     double t_start, t_end;
     int comm_pos = 0;
     int comm_flag = 0;
@@ -354,7 +372,7 @@ int main(int argc, char** argv) {
     bool comm_requestValidity = false;
 
     bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
-    bool tokenColor = false; // true == white (no work), false == black (have work)
+    char tokenColor = false; // true == white (no work), false == black (have work)
     bool haveToken = false;
     bool workSentToLower = false; // true if Pj sent data to Pi where i < j, false after token sent
 
@@ -506,7 +524,23 @@ int main(int argc, char** argv) {
             // 3) obsluhovat prichazejici zpravy - dokola aby nedoslo k deadlocku
 
 
-            // 1) TOKEN
+            /* 
+             * 1) TOKEN
+             */
+            if (haveToken) {
+                tokenColor = getColorOfSendingToken(tokenColor, false, workSentToLower);
+                if (tokenColor == -1) { // Master dostal bilej token takze nikdo nema praci a je treba ukoncit algoritmus
+                    for (int i = 1; i < noIDs; i++) { // send finish message to all other process
+                        sendFinish(i);
+                    }
+                    finishFlag = true; // finish sam pro sebe
+                    break; // teď už je to v pohodě nikde necekam blokujicne, neni nutne ani doresit zbytek zprav protoze stejne vsichni skonci
+                } else {
+                    sendToken(tokenColor);
+                    haveToken = false;
+                }
+            }
+            /*
             if (AM_MASTER) { // pokud ma Master token obarvi ho na bilo a posle
                 if (haveToken) {
                     if (tokenColor == WHITE) { // vratil se mi bilej takze nikdo nema praci, ukonci
@@ -529,9 +563,12 @@ int main(int argc, char** argv) {
                     haveToken = false;
                 }
             }
+             */
 
 
-            // 2) DONOR REQUEST
+            /*
+             *  2) DONOR REQUEST
+             */
             int donor;
             if (!finishFlag) { // nezadat praci pokud koncim ale musim vyresit dotazy
                 donor = getDonor();
@@ -539,7 +576,9 @@ int main(int argc, char** argv) {
             }
 
 
-            // 3) HANDLE MESSAGES
+            /*
+             *  3) HANDLE MESSAGES
+             */
             bool receivedResponse;
             while (true) { // abych pockal na work response
 
@@ -566,7 +605,21 @@ int main(int argc, char** argv) {
 
                             case MSG_TOKEN:
                                 tokenColor = receiveToken();
-                                haveToken = true;
+                                haveToken = true; // mam token a hned se ho zase zbavim jestli jeste nemam praci, jinak mi zustane
+                                if (myStack == NULL || myStack->isEmpty()) {
+                                    // myslim si ze bych mel ihned odpovedet pokud mam porad prazdnej buffer aby se to necyklilo
+                                    tokenColor = getColorOfSendingToken(tokenColor, false, workSentToLower);
+                                    if (tokenColor == -1) { // Master dostal bilej token takze nikdo nema praci a je treba ukoncit algoritmus
+                                        for (int i = 1; i < noIDs; i++) { // send finish message to all other process
+                                            sendFinish(i);
+                                        }
+                                        finishFlag = true; // finish sam pro sebe
+                                        comm_flag = 0; // teď už je to v pohodě nikde necekam blokujicne, neni nutne ani doresit zbytek zprav protoze stejne vsichni skonci
+                                    } else {
+                                        sendToken(tokenColor);
+                                        haveToken = false;
+                                    }
+                                }
                                 break;
 
                             case MSG_FINISH:
@@ -615,7 +668,7 @@ int main(int argc, char** argv) {
         /*
          * Prvotní rozposláni start fieldů a tokenu
          */
-        if (AM_MASTER && !firstSendExecuted && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
+        if (AM_MASTER && !firstSendExecuted && myStack != NULL && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
             Field* Fout;
             for (int i = 1; i < noIDs; i++) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start Field to process " << i << "." << endl;
@@ -636,7 +689,7 @@ int main(int argc, char** argv) {
             firstSendExecuted = true;
 
             // prvni token
-            sendToken(WHITE, !myStack->isEmpty(), workSentToLower); // pradepodobne se posle cernej protoze mam neco na stacku
+            sendToken(BLACK);
             haveToken = false;
         }
 
