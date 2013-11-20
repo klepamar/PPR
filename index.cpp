@@ -18,6 +18,7 @@
 using namespace std;
 
 /* globals and defines */
+// tyhle je potreba otestovat a nastavit na co nejlepsi hodnoty - muzou ovlivnovat dobu behu
 #define WORK_REQUEST_CHECK_FREQUENCY 50
 #define SMALLEST_ALLOWED_PROBLEM 2
 #define START_FIELDSTACK_SIZE 2 // udelat jinak ten prvotni algoritmus (ve foru dokud muzu tak posilam tolikhle fieldu) - je treba zmenit stack divide abych mohl primo zadat kolik chci odebrat
@@ -43,7 +44,8 @@ char workBuffer[WORK_BUFFER_SIZE];
 #define BLACK 0
 #define TOKEN_COLOR(color) ((color) ? "white" : "black")
 
-const char *fileName = "input.txt"; // nepsi by bylo pomoci define protoze to potrebuju jen na zacatku, idealni aby normalne cetl ze vstupu a jen prepinacem ze souboru
+#define DEFAULT_FILENAME "input.txt"
+
 bool verbose = false; // prepinac -v
 bool verboseStackSize = false; // prepinac -vs
 bool verboseProcessCommunication = false; // prepinac -vc
@@ -93,7 +95,9 @@ void initField(Field* &field, const char* fileName) {
 }
 
 /* Read arguements and process them */
-void processArguments(int argc, char** argv) {
+void processArguments(int argc, char** argv, const char* filename) {
+    // cout << myPrefix << "processing " << argc << " arguments." << endl;
+
     for (int i = 1; i < argc; i++) { // first argument (argv[0]) is executable name
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
@@ -102,8 +106,10 @@ void processArguments(int argc, char** argv) {
         } else if (strcmp(argv[i], "-vc") == 0) {
             verboseProcessCommunication = true;
         } else if (strcmp(argv[i], "-f") == 0) {
-            fileName = argv[i + 1];
-            i++;
+            if (filename != NULL) {
+                filename = argv[i + 1];
+            }
+            i++; // skip next, already resolved
         } else if (strcmp(argv[i], "-h") == 0) {
             cout << "Usage:" << endl <<
                     "\t-v\t\tfor verbose" << endl <<
@@ -139,6 +145,8 @@ int getDonor() {
     do {
         donor = rand() % noIDs;
     } while (donor == myID);
+
+    return donor;
 }
 
 void sendWorkRequest(int donor) {
@@ -220,8 +228,9 @@ FieldStack* receiveWorkResponse(Field* &bestSolution, int donor, MPI_Request* la
         Field* BSin = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
         improveSolution(bestSolution, BSin); // zlepsim si svoje nej reseni podle nej reseni toho kdo mi poslal praci
         FieldStack* FSin = FieldStack::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
-        
+
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME work from process " << status.MPI_SOURCE << endl;
+
         return FSin;
     }
 }
@@ -274,9 +283,9 @@ void receiveFinish() { // odesilatel jen Master ale nechavam projistotu ANY
 
 void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastRequestValidity) { // prijemce je vzdy Master
     int pos = 0;
-    
+
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending best Field to Master." << endl;
-    
+
     waitForLastWorkRequest(lastRequest, lastRequestValidity);
 
     char isNull;
@@ -287,14 +296,14 @@ void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastReque
         bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
         MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
         lastRequestValidity = true;
-        
+
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
     } else { // nema zadne reseni
         isNull = 1;
 
         MPI_Pack(&isNull, 1, MPI_CHAR, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
         MPI_Send(tinyBuffer, TINY_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
-        
+
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
     }
 }
@@ -318,6 +327,7 @@ Field* receiveSolution(MPI_Request* lastRequest, bool &lastRequestValidity) { //
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
     } else {
         field = NULL;
+
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NULL best Field from process " << status.MPI_SOURCE << "." << endl;
     }
 
@@ -333,6 +343,8 @@ int main(int argc, char** argv) {
     FieldStack* myStack = new FieldStack(); // use an implicit constructor to initialise stack pointers & size
     Field* myCurrField = NULL;
     Field* myBestField = NULL;
+
+    const char* filename = DEFAULT_FILENAME;
 
     double t_start, t_end;
     int comm_pos = 0;
@@ -353,6 +365,11 @@ int main(int argc, char** argv) {
     int noStartedIDs = 1; // Master vzdy
     int divideStackCalled = 0;
 
+
+
+
+
+
     /* start up MPI */
     MPI_Init(&argc, &argv);
 
@@ -369,6 +386,8 @@ int main(int argc, char** argv) {
     /* find out number of processes */
     MPI_Comm_size(MPI_COMM_WORLD, &noIDs);
 
+    cout << myPrefix << "Find out myID and noIDs." << endl;
+
     /* waiting for all process, then start */
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -379,8 +398,8 @@ int main(int argc, char** argv) {
 
         // inicializace
         try {
-            processArguments(argc, argv);
-            initField(myCurrField, fileName);
+            processArguments(argc, argv, filename);
+            initField(myCurrField, filename);
         } catch (string ex) {
             cout << "Exception: " << ex << endl;
 
@@ -396,6 +415,7 @@ int main(int argc, char** argv) {
         cout << "-------------------- /TASK --------------------" << endl;
 
     } else { // slaves wait (blocking way) for first data from master
+        processArguments(argc, argv, NULL); // need to get verbose flags
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
         // neni treba cekat je to poprve co poouziju workBuffer
@@ -639,7 +659,7 @@ int main(int argc, char** argv) {
                     receiveWorkRequest(comm_status.MPI_SOURCE);
 
                     if (verbose || verboseProcessCommunication) divideStackCalled++;
-                    FieldStack* FSout = myStack->divide();
+                    FieldStack * FSout = myStack->divide();
                     sendWorkResponse(FSout, myBestField, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
 
                     delete FSout;
@@ -687,10 +707,10 @@ int main(int argc, char** argv) {
     delete myBestField; // clean-up
     delete myStack; // clean-up
 
-    
+
 
     // each CPU displays how many times stack was divided
-    sleep(1);
+    //sleep(1);
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Divided stack: " << divideStackCalled << " times." << endl;
 
     /* shut down MPI */
