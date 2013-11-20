@@ -37,7 +37,7 @@ Field::Field(const Field& orig) : dimX(orig.dimX), dimY(orig.dimY) {
             this->fieldArray[i][j] = orig.fieldArray[i][j];
         }
     }
-    */
+     */
 }
 
 Field::~Field() {
@@ -377,19 +377,7 @@ Field * Field::unpack(void *buffer, int bufferSize, int *bufferPos) {
 
     field = new Field(Vector2D(dimX, dimY)); // sestaveni
     field->rects = RectList::unpack(buffer, bufferSize, bufferPos); // rects
-
-    for (int i = 0; i < field->dimX; i++) { // vynulovat fiedlAray protoze nedokazu rict kde nuly a kde cisla, v ostatnich pripadech to kopiruju z jinyho fieldArray takze to udelam v case a*b
-        for (int j = 0; j < field->dimY; j++) {
-            field->fieldArray[i][j] = 0; // vynulovani
-        }
-    }
-
-    field->rects->toFirst(); // na zacatek
-    while (field->rects->getCurrent() != NULL) { // vsechny projit
-        field->colorField(field->rects->getCurrent(), -1 * field->rects->getCurrentId()); // perSum, fieldArray
-        field->rects->toNext();
-    }
-    field->rects->toUnpositioned(); // vratit se na current;
+    field->restoreFieldArray(); // obnoveni FA ktery si neposilam
 
     return field;
 }

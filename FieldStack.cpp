@@ -150,21 +150,6 @@ std::string FieldStack::toString() const {
     return ss.str();
 }
 
-void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor na ty hvezdicky abych to spravne pouzival pro volani MPI
-    if (this->isEmpty()) {
-        return;
-    }
-
-    MPI_Pack(&(this->size), 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // size
-
-    // jdu od spodu abych pri unpacku mohl pouzivat push
-    FieldStackItem* tmp = bottomItem;
-    while (tmp != NULL) {
-        tmp->field->pack(buffer, bufferSize, bufferPos);
-        tmp = tmp->upper;
-    }
-}
-
 FieldStack* FieldStack::divideByOne() {
     if (verbose || verboseProcessCommunication) {
         // include information about RectList
@@ -372,6 +357,21 @@ FieldStack::FieldStackItem* FieldStack::findNewBottomItem() const {
 
     //current vzdy ukazuje na bottomItem povodneho stacku
     return current;
+}
+
+void FieldStack::pack(void *buffer, int bufferSize, int *bufferPos) { // pozor na ty hvezdicky abych to spravne pouzival pro volani MPI
+    if (this->isEmpty()) {
+        return;
+    }
+
+    MPI_Pack(&(this->size), 1, MPI_INT, buffer, bufferSize, bufferPos, MPI_COMM_WORLD); // size
+
+    // jdu od spodu abych pri unpacku mohl pouzivat push
+    FieldStackItem* tmp = bottomItem;
+    while (tmp != NULL) {
+        tmp->field->pack(buffer, bufferSize, bufferPos);
+        tmp = tmp->upper;
+    }
 }
 
 FieldStack* FieldStack::unpack(void *buffer, int bufferSize, int *bufferPos) {
