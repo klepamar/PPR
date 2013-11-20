@@ -687,12 +687,13 @@ int main(int argc, char** argv) {
     delete myBestField; // clean-up
     delete myStack; // clean-up
 
-    /* shut down MPI */
+    
 
     // each CPU displays how many times stack was divided
     sleep(1);
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Divided stack: " << divideStackCalled << " times." << endl;
 
+    /* shut down MPI */
     MPI_Finalize();
 
     exit(EXIT_SUCCESS);

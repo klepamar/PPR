@@ -90,15 +90,22 @@ void Field::deleteFieldArray() {
 
 void Field::restoreFieldArray() {
 
-    // alloc memmory for FieldArray and reset it to zeros
-    this->fieldArray = new int*[this->dimX];
+    // alloc memmory for FieldArray
+    if (this->fieldArray == NULL) {
+        this->fieldArray = new int*[this->dimX];
+        for (int i = 0; i < this->dimX; i++) {
+            fieldArray[i] = new int[this->dimY];
+        }
+    }
+
+    // reset fiedlArray to zeros
     for (int i = 0; i < this->dimX; i++) {
-        fieldArray[i] = new int[this->dimY];
         for (int j = 0; j < this->dimY; j++) {
             this->fieldArray[i][j] = 0;
         }
     }
 
+    // color fieldArray
     this->rects->toFirst(); // na zacatek
     while (this->rects->getCurrent() != NULL) { // vsechny projit
         this->colorField(); // vybarvi current // perSum, fieldArray
@@ -149,6 +156,8 @@ bool Field::solveRectShapes(FieldStack* stack, Field* bestSolution) {
 
         if (bestSolution == NULL || newField->getPerimetrSum() < bestSolution->getPerimetrSum()) { // do not push worse solutions than currently the best
             stack->push(newField);
+        } else {
+            delete newField;
         }
     }
 
@@ -202,6 +211,8 @@ bool Field::solveRectPositions(FieldStack* stack, Field* bestSolution) {
 
         if (bestSolution == NULL || newField->getPerimetrSum() < bestSolution->getPerimetrSum()) { // do not push worse solutions than currently the best
             stack->push(newField);
+        } else {
+            delete newField;
         }
     }
 
