@@ -331,7 +331,7 @@ void sendSolution(Field* bestSolution, int noStackDivisions, int noAlgorithmIter
         MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD, lastRequest);
         lastRequestValidity = true;
 
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent SOME best Field to Master." << endl;
     } else { // nema zadne reseni
         isNull = 1;
 
@@ -346,7 +346,7 @@ void sendSolution(Field* bestSolution, int noStackDivisions, int noAlgorithmIter
 }
 
 /* in/out lastRequestValidity, lastRequestValidity is changed */
-Field* receiveSolution(int &noStackDivisions, int &noAlgorithmIteration, MPI_Request* lastRequest, bool &lastRequestValidity) { // odesilatel muze bejt kdokoliv
+Field* receiveSolution(int &noStackDivisions, int &noAlgorithmIterations, MPI_Request* lastRequest, bool &lastRequestValidity) { // odesilatel muze bejt kdokoliv
     Field* field;
     char isNull;
     int pos = 0;
@@ -367,9 +367,9 @@ Field* receiveSolution(int &noStackDivisions, int &noAlgorithmIteration, MPI_Req
     }
 
     MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &noSD, 1, MPI_INT, MPI_COMM_WORLD);
-    noStackDivisions += noSD;
+    noStackDivisions = noStackDivisions + noSD;
     MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &noAI, 1, MPI_INT, MPI_COMM_WORLD);
-    noAlgorithmIteration += noAI;
+    noAlgorithmIterations = noAlgorithmIterations + noAI;
 
     if (isNull == 0) {
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
@@ -520,9 +520,8 @@ int main(int argc, char** argv) {
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
-        /* TODO klasicky odpovidat na vsechno a cekat nez dostanu praci. stejne jako kdyz zadadam o praci od 0  aještě jsem ji nedostal */
         /*
-         * HANDLE MESSAGES
+         * HANDLE MESSAGES - klasicky odpovidat na vsechno a cekat nez dostanu prvni praci
          */
         bool receivedResponse;
         while (true) { // abych pockal na work response
@@ -580,7 +579,7 @@ int main(int argc, char** argv) {
                             break;
 
                         default:
-                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
+                            if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known or not expected tag " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
                             break;
                     }
                 }
@@ -598,17 +597,6 @@ int main(int argc, char** argv) {
                 break;
             }
         }
-
-
-        /*
-        // neni treba cekat je to poprve co poouziju workBuffer
-        // TODO az bude minimalDivide tak pouzit normalne receive work
-        MPI_Recv(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_status);
-        comm_pos = 0;
-        myCurrField = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &comm_pos);
-
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received start Field." << endl;
-         */
     }
 
 
@@ -677,29 +665,19 @@ int main(int argc, char** argv) {
         /*
          * Načtení dalšího stavu k řešení nového DFS + ukončující podmínka výpočtu.
          */
-        delete myCurrField;
-        myCurrField = myStack->pop();
+        delete myCurrField; // uz ho nepotrebuju
+        myCurrField = myStack->pop(); // chci nove
 
-        while (myCurrField == NULL) { // stack is empty
+        while (myCurrField == NULL) { // stack is empty - nemam svoje nove, zadam ostatni
 
             if (noIDs == 1) { // is not parallel
-                finishFlag = true; // ukoncujici podminka vnejsiho whilu (celeho algoritmu)
+                finishFlag = true; // ukoncujici podminka
                 break; // vyskoci z totohle whilu kterej zada o praci // sekvencne nema koho pozadat
             }
-
-            /*
-            if (noIDs == 1 || noStartedIDs == 1) { // is not parallel
-                for(int i = 1; i < noIDs; i++) {
-                    sendFinish(i); // ukonci ostatni
-                }
-                finishFlag = true; // ukonci sebe
-                break; // vyskoci z totohle whilu kterej zada o praci // sekvencne nema koho pozadat
-            }*/
 
             // 1) vyresit token - pripadne ukonceni vypoctu
             // 2) pozadat o praci - aby mohl pokracovat
             // 3) obsluhovat prichazejici zpravy - dokola aby nedoslo k deadlocku
-
 
             /* 
              * 1) TOKEN
@@ -717,46 +695,12 @@ int main(int argc, char** argv) {
                     haveToken = false;
                 }
             }
-            /*
-            if (AM_MASTER) { // pokud ma Master token obarvi ho na bilo a posle
-                if (haveToken) {
-                    if (tokenColor == WHITE) { // vratil se mi bilej takze nikdo nema praci, ukonci
-
-                        for (int i = 1; i < noIDs; i++) { // send finish message to all other process
-                            sendFinish(i);
-                        }
-
-                        finishFlag = true; // finish 
-                        break; // teď už je to v pohodě nikde necekam blokujicne
-                    } else { // obarvi na bilo a posli znovu
-                        tokenColor = WHITE;
-                        sendToken(tokenColor, false, workSentToLower);
-                        haveToken = false;
-                    }
-                }
-            } else { // Slaves pripadne obarvi preposlou
-                if (haveToken) {
-                    sendToken(tokenColor, false, workSentToLower);
-                    haveToken = false;
-                }
-            }
-             */
-
 
             /*
              *  2) DONOR REQUEST
              */
             int donor = getDonor();
             sendWorkRequest(donor);
-
-            /* mam li finish flag muzu bez obav skoncit. Vsichni si ten finish flag prectou a ukoncej se
-            int donor;
-            if (!finishFlag) { // nezadat praci pokud koncim ale musim vyresit dotazy
-                donor = getDonor();
-                sendWorkRequest(donor);
-            }
-             */
-
 
             /*
              *  3) HANDLE MESSAGES
@@ -851,21 +795,25 @@ int main(int argc, char** argv) {
                 myCurrField = myStack->pop(); // pokud jsem dostal praci zajistím tim vyskočení z cyklu
             }
             // else budu cyklus opakovat (zazadam noveho, odpovim na zpravy a cekam na praci)
-        }
+
+        } // konec zadani o prace, dostal jsem praci, nebo jsem ji mel uz od zacatku
 
         if (finishFlag) { // neni treba uz pokracovat
             break;
         }
 
         /*
-         * Prvotní rozposláni start fieldů
+         * Prvotní rozposláni start FieldStacků
          */
         if (AM_MASTER && noStartedIDs < noIDs && myStack != NULL) {
 
-            FieldStack* FSout = myStack->divideByOne();
+            
+            //FieldStack* FSout = myStack->divideByOne();
+            FieldStack* FSout = myStack->divide();
+
             while (FSout != NULL) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start FieldStack to process " << noStartedIDs << "." << endl;
-                
+
                 sendWorkResponse(FSout, myBestField, noStartedIDs, &comm_request, comm_requestValidity);
                 noStartedIDs++;
 
@@ -877,45 +825,6 @@ int main(int argc, char** argv) {
                 }
             }
         }
-
-        /*
-         * Prvotní poslani tokenu
-         * nemusim se bat ze ho poslu nenastartovanymu, protoze i oni odpovidaji na zpravy
-         */
-        /*
-        if (AM_MASTER && !firstTokenSent) {
-            sendToken(BLACK);
-            haveToken = false;
-            firstTokenSent = true;
-        }
-         */
-
-        /*
-        if (AM_MASTER && !firstSendExecuted && myStack != NULL && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
-            Field* Fout;
-            for (int i = 1; i < noIDs; i++) {
-                if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start Field to process " << i << "." << endl;
-
-                waitForLastWorkRequest(&comm_request, comm_requestValidity);
-                // TODO az bude minimal divide pouzit normalne receive work, slo by i tou redukci
-                Fout = myStack->popBottom(); // místo tohohle divide stack na n částí kdy jedna tu zůstane ostatní pošlu
-                comm_pos = 0;
-                Fout->pack(workBuffer, WORK_BUFFER_SIZE, &comm_pos);
-                //MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_RESPONSE, MPI_COMM_WORLD);
-                MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, i, MSG_WORK_RESPONSE, MPI_COMM_WORLD, &comm_request);
-                comm_requestValidity = true;
-
-                if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent start Field to process " << i << "." << endl;
-
-                delete Fout;
-            }
-            firstSendExecuted = true;
-
-            // prvni token
-            sendToken(BLACK);
-            haveToken = false;
-        }
-         */
 
         /*
          * Test jen na zadost o praci, ostatni resim pri prazdnym stacku
@@ -975,25 +884,17 @@ int main(int argc, char** argv) {
         cout << "Calculation took: " << (t_end - t_start) << " sec." << endl <<
                 "Number of given processors: " << noIDs << endl <<
                 "Number of used processors: " << noStartedIDs << endl <<
-                "Number of iteration (ale ted je to vlastne pocet DFS): " << noAlgorithmIteration << endl <<
-                "Number of stackDivision: " << noStackDivisions << endl;
+                "Number of outer iterations (no DFSs): " << noAlgorithmIteration << endl <<
+                "Number of stackDivisions: " << noStackDivisions << endl;
         cout << "-------------------- /SOLUTION --------------------" << endl;
 
     } else { // Slaves pošlou svoje řešení
         sendSolution(myBestField, noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
     }
 
-
     delete myCurrField; // clean-up
     delete myBestField; // clean-up
     delete myStack; // clean-up
-
-
-
-    // each CPU displays how many times stack was divided
-    sleep(1);
-    cout << myPrefix << "Number of stackDivision: " << noStackDivisions << " times." << endl;
-    cout << myPrefix << "Number of iteration: " << noAlgorithmIteration << " times." << endl;
 
     /* shut down MPI */
     MPI_Finalize();
