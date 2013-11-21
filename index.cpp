@@ -29,7 +29,7 @@ using namespace std;
 
 #define ZERO_BUFFER_SIZE        0 // for empty messages
 #define TINY_BUFFER_SIZE        100 // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
-#define WORK_BUFFER_SIZE        8 * 1000000 // k * 1MB
+#define WORK_BUFFER_SIZE        100 * 1000 // 1kB = 1000, 1MB = 1 000 000B
 
 char tinyBuffer[TINY_BUFFER_SIZE];
 char workBuffer[WORK_BUFFER_SIZE];
