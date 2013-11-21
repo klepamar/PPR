@@ -370,12 +370,12 @@ Field* receiveSolution(int &noStackDivisions, int &noAlgorithmIteration, MPI_Req
     noStackDivisions += noSD;
     MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &noAI, 1, MPI_INT, MPI_COMM_WORLD);
     noAlgorithmIteration += noAI;
-    
+
     if (isNull == 0) {
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
     } else {
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NULL best Field from process " << status.MPI_SOURCE << "." << endl;
-    }    
+    }
 
     return field;
 }
@@ -511,6 +511,9 @@ int main(int argc, char** argv) {
         cout << "Number of given processors: " << noIDs << endl;
         cout << myCurrField->toString(true, false);
         cout << "-------------------- /TASK --------------------" << endl;
+
+        sendToken(BLACK);
+        haveToken = false;
 
     } else { // slaves wait (blocking way) for first data from master
         processArguments(argc, argv); // need to get verbose flags
@@ -812,11 +815,13 @@ int main(int argc, char** argv) {
                                 finishFlag = true; // ukoncujici podminka celeho algoritmu
                                 break;
 
-                            case MSG_SOLUTION:
-                                noGatheredSolutins++;
-                                myCurrField = receiveSolution(noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
-                                improveSolution(myBestField, myCurrField);
-                                break;
+                                /* po finish flagu hned konci takze je vsechny sesbira az nakonci
+                               case MSG_SOLUTION:
+                                   noGatheredSolutins++;
+                                   myCurrField = receiveSolution(noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
+                                   improveSolution(myBestField, myCurrField);
+                                   break;
+                                 */
 
                             default:
                                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known or not expected tag " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
@@ -853,15 +858,23 @@ int main(int argc, char** argv) {
         }
 
         /*
-         * Prvotní rozposláni start fieldů a tokenu
+         * Prvotní rozposláni start fieldů
          */
         if (AM_MASTER && noStartedIDs < noIDs && myStack != NULL) {
+
             FieldStack* FSout = myStack->divideByOne();
-            //FieldStack* FSout = myStack->divide();
-            while (FSout != NULL && noStartedIDs < noIDs) {
+            while (FSout != NULL) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending start FieldStack to process " << noStartedIDs << "." << endl;
+                
                 sendWorkResponse(FSout, myBestField, noStartedIDs, &comm_request, comm_requestValidity);
                 noStartedIDs++;
+
+                delete FSout;
+                if (noStartedIDs < noIDs) { // jestli je jeste komu poslat prvotni praci tak zkus znova rozdelit
+                    FSout = myStack->divideByOne();
+                } else { // jestli uz neni komu posilat tak uz praci nedel! tim skonci i while
+                    FSout = NULL; // vyskoci z podminky;
+                }
             }
         }
 
@@ -869,11 +882,13 @@ int main(int argc, char** argv) {
          * Prvotní poslani tokenu
          * nemusim se bat ze ho poslu nenastartovanymu, protoze i oni odpovidaji na zpravy
          */
+        /*
         if (AM_MASTER && !firstTokenSent) {
             sendToken(BLACK);
             haveToken = false;
             firstTokenSent = true;
         }
+         */
 
         /*
         if (AM_MASTER && !firstSendExecuted && myStack != NULL && myStack->getSize() >= noIDs - 1) { // jsem Master a jeste jsem poprve nerozesilal a mam dost dat na stacku abych poslal vsem ostatnim
@@ -960,7 +975,7 @@ int main(int argc, char** argv) {
         cout << "Calculation took: " << (t_end - t_start) << " sec." << endl <<
                 "Number of given processors: " << noIDs << endl <<
                 "Number of used processors: " << noStartedIDs << endl <<
-                "Number of DFSs: " << noAlgorithmIteration << endl <<
+                "Number of iteration (ale ted je to vlastne pocet DFS): " << noAlgorithmIteration << endl <<
                 "Number of stackDivision: " << noStackDivisions << endl;
         cout << "-------------------- /SOLUTION --------------------" << endl;
 
