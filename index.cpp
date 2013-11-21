@@ -443,19 +443,17 @@ int main(int argc, char** argv) {
     MPI_Request comm_request;
     bool comm_requestValidity = false;
 
-    // bool firstSendExecuted = false; // true after first send from Master to Slaves is executed
     bool firstTokenSent = false;
-    
-    char tokenColor = false; // true == white (no work), false == black (have work)
+    char tokenColor = false; // true == white (no work), false == black (have work), -1 v pripade ze se ma ihned skoncit, char taky proto ze nejde posilat bool
     bool haveToken = false;
     bool workSentToLower = false; // true if Pj sent data to Pi where i < j, false after token sent
 
     bool finishFlag = false;
-    int iterationCounter = 0;
 
-    int gatheredSolutins = 0;
+    int noGatheredSolutins = 0;
     int noStartedIDs = 1; // Master vzdy
-    int divideStackCalled = 0;
+    int noStackDivisions = 0;
+    int noAlgorithmIteration = 0;
 
     /* start up MPI */
     MPI_Init(&argc, &argv);
@@ -564,7 +562,7 @@ int main(int argc, char** argv) {
                             break;
 
                         case MSG_SOLUTION:
-                            gatheredSolutins++;
+                            noGatheredSolutins++;
                             myCurrField = receiveSolution(&comm_request, comm_requestValidity);
                             improveSolution(myBestField, myCurrField);
                             break;
@@ -807,7 +805,7 @@ int main(int argc, char** argv) {
                                 break;
 
                             case MSG_SOLUTION:
-                                gatheredSolutins++;
+                                noGatheredSolutins++;
                                 myCurrField = receiveSolution(&comm_request, comm_requestValidity);
                                 improveSolution(myBestField, myCurrField);
                                 break;
@@ -899,8 +897,8 @@ int main(int argc, char** argv) {
         /*
          * Test jen na zadost o praci, ostatni resim pri prazdnym stacku
          */
-        iterationCounter++;
-        if (iterationCounter == WORK_REQUEST_CHECK_FREQUENCY) {
+        noAlgorithmIteration++;
+        if (noAlgorithmIteration % WORK_REQUEST_CHECK_FREQUENCY == 0) {
 
             if (verbose || verboseProcessCommunication) cout << myPrefix << "Handle work requests." << endl;
 
@@ -913,8 +911,12 @@ int main(int argc, char** argv) {
                     receiveWorkRequest(comm_status.MPI_SOURCE);
 
                     FieldStack * FSout = myStack->divide();
-                    divideStackCalled++;
+                    noStackDivisions++;
                     sendWorkResponse(FSout, myBestField, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
+                    
+                    if(comm_status.MPI_SOURCE < myID) {
+                        workSentToLower = true;
+                    }
 
                     delete FSout;
                 }
@@ -923,8 +925,6 @@ int main(int argc, char** argv) {
             if (anyRequest == false) {
                 if (verbose || verboseProcessCommunication) cout << myPrefix << "NO work requests." << endl;
             }
-
-            iterationCounter = 0;
         }
     }
 
@@ -935,7 +935,7 @@ int main(int argc, char** argv) {
     if (AM_MASTER) { // Master počkám na zprávy od Slaves a vypíšu řešení
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Gathering rest of best Fields from other processes." << endl;
 
-        for (int i = 1; i < noIDs - gatheredSolutins; i++) { // pockam jeste na zbytek reseni (ne ty ktery neprisli kdyz jsem obsluhoval posledni zpravy)
+        for (int i = 1; i < noIDs - noGatheredSolutins; i++) { // pockam jeste na zbytek reseni (ne ty ktery neprisli kdyz jsem obsluhoval posledni zpravy)
             myCurrField = receiveSolution(&comm_request, comm_requestValidity);
             improveSolution(myBestField, myCurrField);
         }
@@ -969,7 +969,8 @@ int main(int argc, char** argv) {
 
     // each CPU displays how many times stack was divided
     sleep(1);
-    cout << myPrefix << "Divided stack: " << divideStackCalled << " times." << endl;
+    cout << myPrefix << "Number of stackDivision: " << noStackDivisions << " times." << endl;
+    cout << myPrefix << "Number of iteration: " << noAlgorithmIteration << " times." << endl;
 
     /* shut down MPI */
     MPI_Finalize();
