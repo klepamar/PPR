@@ -28,7 +28,7 @@ using namespace std;
 #define AM_MASTER (myID == MASTER)
 
 #define ZERO_BUFFER_SIZE        0 // for empty messages
-#define TINY_BUFFER_SIZE        1 // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
+#define TINY_BUFFER_SIZE        100 // nevim jeslti to ma smysl snazit se posilat min, jestli se stejne vzdycky neposle ten 1KB paket
 #define WORK_BUFFER_SIZE        8 * 1000000 // k * 1MB
 
 char tinyBuffer[TINY_BUFFER_SIZE];
@@ -312,7 +312,7 @@ void receiveFinish() { // odesilatel jen Master ale nechavam projistotu ANY
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Received finish message from process " << status.MPI_SOURCE << "." << endl;
 }
 
-void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastRequestValidity) { // prijemce je vzdy Master
+void sendSolution(Field* bestSolution, int noStackDivisions, int noAlgorithmIteration, MPI_Request* lastRequest, bool &lastRequestValidity) { // prijemce je vzdy Master
     int pos = 0;
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Sending best Field to Master." << endl;
@@ -325,7 +325,10 @@ void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastReque
 
         MPI_Pack(&isNull, 1, MPI_CHAR, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
         bestSolution->pack(workBuffer, WORK_BUFFER_SIZE, &pos);
-        MPI_Send(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
+        MPI_Pack(&noStackDivisions, 1, MPI_INT, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+        MPI_Pack(&noAlgorithmIteration, 1, MPI_INT, workBuffer, WORK_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+
+        MPI_Isend(workBuffer, WORK_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD, lastRequest);
         lastRequestValidity = true;
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
@@ -333,6 +336,9 @@ void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastReque
         isNull = 1;
 
         MPI_Pack(&isNull, 1, MPI_CHAR, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+        MPI_Pack(&noStackDivisions, 1, MPI_INT, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+        MPI_Pack(&noAlgorithmIteration, 1, MPI_INT, tinyBuffer, TINY_BUFFER_SIZE, &pos, MPI_COMM_WORLD);
+
         MPI_Send(tinyBuffer, TINY_BUFFER_SIZE, MPI_PACKED, MASTER, MSG_SOLUTION, MPI_COMM_WORLD);
 
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Sent NULL best Field to Master." << endl;
@@ -340,10 +346,11 @@ void sendSolution(Field* bestSolution, MPI_Request* lastRequest, bool &lastReque
 }
 
 /* in/out lastRequestValidity, lastRequestValidity is changed */
-Field* receiveSolution(MPI_Request* lastRequest, bool &lastRequestValidity) { // odesilatel muze bejt kdokoliv
+Field* receiveSolution(int &noStackDivisions, int &noAlgorithmIteration, MPI_Request* lastRequest, bool &lastRequestValidity) { // odesilatel muze bejt kdokoliv
     Field* field;
     char isNull;
     int pos = 0;
+    int noSD, noAI;
     MPI_Status status;
 
     if (verbose || verboseProcessCommunication) cout << myPrefix << "Receiving best Field." << endl;
@@ -355,12 +362,20 @@ Field* receiveSolution(MPI_Request* lastRequest, bool &lastRequestValidity) { //
     MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &isNull, 1, MPI_CHAR, MPI_COMM_WORLD);
     if (isNull == 0) {
         field = Field::unpack(workBuffer, WORK_BUFFER_SIZE, &pos);
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
     } else {
         field = NULL;
-
-        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NULL best Field from process " << status.MPI_SOURCE << "." << endl;
     }
+
+    MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &noSD, 1, MPI_INT, MPI_COMM_WORLD);
+    noStackDivisions += noSD;
+    MPI_Unpack(workBuffer, WORK_BUFFER_SIZE, &pos, &noAI, 1, MPI_INT, MPI_COMM_WORLD);
+    noAlgorithmIteration += noAI;
+    
+    if (isNull == 0) {
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received SOME best Field from process " << status.MPI_SOURCE << "." << endl;
+    } else {
+        if (verbose || verboseProcessCommunication) cout << myPrefix << "Received NULL best Field from process " << status.MPI_SOURCE << "." << endl;
+    }    
 
     return field;
 }
@@ -499,7 +514,7 @@ int main(int argc, char** argv) {
 
     } else { // slaves wait (blocking way) for first data from master
         processArguments(argc, argv); // need to get verbose flags
-        
+
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Waiting for start Field." << endl;
 
         /* TODO klasicky odpovidat na vsechno a cekat nez dostanu praci. stejne jako kdyz zadadam o praci od 0  aještě jsem ji nedostal */
@@ -561,12 +576,6 @@ int main(int argc, char** argv) {
                             finishFlag = true; // ukoncujici podminka celeho algoritmu
                             break;
 
-                        case MSG_SOLUTION:
-                            noGatheredSolutins++;
-                            myCurrField = receiveSolution(&comm_request, comm_requestValidity);
-                            improveSolution(myBestField, myCurrField);
-                            break;
-
                         default:
                             if (verbose || verboseProcessCommunication) cout << myPrefix << "Not known " << comm_status.MPI_TAG << " from process " << comm_status.MPI_SOURCE << "." << endl;
                             break;
@@ -603,7 +612,6 @@ int main(int argc, char** argv) {
     /* 
      * ALGORITMUS
      */
-    cout << myPrefix << "Starting algorithm." << endl;
     while (!finishFlag) { // nový DFS, field ze stacku nebo z init (dva možné stavy - třeba řešit jen pozice třeba řešit tvar a pozice)
         while (true) { // provedení DFS až do konce
             /*
@@ -806,7 +814,7 @@ int main(int argc, char** argv) {
 
                             case MSG_SOLUTION:
                                 noGatheredSolutins++;
-                                myCurrField = receiveSolution(&comm_request, comm_requestValidity);
+                                myCurrField = receiveSolution(noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
                                 improveSolution(myBestField, myCurrField);
                                 break;
 
@@ -861,8 +869,8 @@ int main(int argc, char** argv) {
          * Prvotní poslani tokenu
          * nemusim se bat ze ho poslu nenastartovanymu, protoze i oni odpovidaji na zpravy
          */
-        if(AM_MASTER && !firstTokenSent) {
-                        sendToken(BLACK);
+        if (AM_MASTER && !firstTokenSent) {
+            sendToken(BLACK);
             haveToken = false;
             firstTokenSent = true;
         }
@@ -913,8 +921,8 @@ int main(int argc, char** argv) {
                     FieldStack * FSout = myStack->divide();
                     noStackDivisions++;
                     sendWorkResponse(FSout, myBestField, comm_status.MPI_SOURCE, &comm_request, comm_requestValidity);
-                    
-                    if(comm_status.MPI_SOURCE < myID) {
+
+                    if (comm_status.MPI_SOURCE < myID) {
                         workSentToLower = true;
                     }
 
@@ -936,7 +944,7 @@ int main(int argc, char** argv) {
         if (verbose || verboseProcessCommunication) cout << myPrefix << "Gathering rest of best Fields from other processes." << endl;
 
         for (int i = 1; i < noIDs - noGatheredSolutins; i++) { // pockam jeste na zbytek reseni (ne ty ktery neprisli kdyz jsem obsluhoval posledni zpravy)
-            myCurrField = receiveSolution(&comm_request, comm_requestValidity);
+            myCurrField = receiveSolution(noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
             improveSolution(myBestField, myCurrField);
         }
 
@@ -951,13 +959,13 @@ int main(int argc, char** argv) {
 
         cout << "Calculation took: " << (t_end - t_start) << " sec." << endl <<
                 "Number of given processors: " << noIDs << endl <<
-                "Number of used processors: " << noStartedIDs << 
-                "Number of iteration: " /*TODO pocitat likalne poslat se solution */ << endl << 
-                "Number of stackDivision: " /*TODO pocitat likalne poslat se solution */ << endl;
+                "Number of used processors: " << noStartedIDs << endl <<
+                "Number of DFSs: " << noAlgorithmIteration << endl <<
+                "Number of stackDivision: " << noStackDivisions << endl;
         cout << "-------------------- /SOLUTION --------------------" << endl;
 
     } else { // Slaves pošlou svoje řešení
-        sendSolution(myBestField, &comm_request, comm_requestValidity);
+        sendSolution(myBestField, noStackDivisions, noAlgorithmIteration, &comm_request, comm_requestValidity);
     }
 
 
