@@ -5,37 +5,75 @@
 \usepackage[utf8]{inputenc}
 \usepackage{pslatex}
 
+\usepackage{tabularx} % tabulky na celu sirku strany
+
 \begin{document}
 
-\begin{center}
-\bf Semestrálna práca MI-PAR 2013/2014:\\[5mm]
-    Paralelný algoritmus pre rozklad obdĺžnikov\\[5mm]
-       Jakub Melezínek\\
-       Martin Klepáč\\[2mm]
-\today
-\end{center}
+\title{Semestrálna práca MI-PAR 2013/2014: \\[5mm] Paralelný algoritmus pre rozklad obdĺžnikov}
+\author{Jakub Melezínek \\[2mm]Martin Klepáč}
+\date{\today}
+
+\maketitle
 
 \section{Definícia problému}
 
-Našou úlohou bolo vytvoriť program, ktorý implementuje usporiadanie obdĺžnikov so zachovaním minimálneho celkového obvodu týchto obdĺžnikov.
+Našou úlohou bolo vytvoriť program, ktorý implementuje usporiadanie obdĺžnikov v 2D mriežke so zachovaním minimálneho celkového obvodu týchto obdĺžnikov.
 
 Obsah obdĺžnika je daný hodnotou uloženou v 2D mriežke, pričom tento element musí byť súčasťou obdĺžnika s daným obsahom.
 
 Jednotlivé obdĺžniky sú vzájomne disjunktné až na spoločné vrcholy a hrany, pričom zjednotenie všetkých obdĺžnikov pokrýva pôvodnú mriežku.
 
-Riešení, ako rozdeliť mriežku na jednotlivé obdĺžniky, môže byť viac -- v takom prípade hľadáme riešenie s minimálnym obvodom, ale zároveň riešenie nemusí existovať.
+Riešení, ako rozdeliť mriežku na jednotlivé obdĺžniky, môže byť viac -- v takom prípade hľadáme riešenie s minimálnym obvodom -- zároveň ale riešenie nemusí existovať.
 
 
 \section{Formát vstupu, výstupu}
 
-Formálne, vstup vyjadríme pomocou \\ 
+Formálne, vstup vyjadríme pomocou
 
-\emph{a, b} = prirodzené čísla predstavujúce rozmery mriežky
+\begin{itemize}
 
-\emph{H[1..a][1..b]} = mriežka
+\item \emph{a, b} = prirodzené čísla predstavujúce rozmery mriežky
 
-\emph{n} = prirodzené číslo predstavujúce počet obdĺžnikov vo vnútri mriežky \\
+\item \emph{H[1..a][1..b]} = mriežka
 
-Výstupom algoritmu je okrem celkového obvodu dielčích obdĺžnikov vyfarbená mriežka, t.j. mriežka, v ktorej každému elementu je priradené písmeno abecedy, ktoré reprezentuje číslo obdĺžnika, ktorého je bod súčasťou.
+\item \emph{n} = prirodzené číslo predstavujúce počet obdĺžnikov vo vnútri mriežky
+
+\end{itemize}
+
+Výstupom algoritmu je okrem celkového obvodu dielčích obdĺžnikov vyfarbená mriežka, t.j. mriežka, v ktorej každému elementu je priradené písmeno abecedy, ktoré jednoznačne identifikuje obdĺžnik, ktorého je bod súčasťou.
+
+
+\section{Implementácia sekvenčného riešenia}
+
+Primárny cieľ sekvenčného riešenia, na ktorom ďalej staviame v paralelnej implementácii, spočíva v nájdení a následnom prehľadaní celého stavového priestoru množiny potenciálnych riešení. 
+
+Stavový priestor v našom prípade rozumieme množinu mriežok, do ktorých postupne vkladáme obdĺžniky s dvojicou parametrov
+
+\begin{enumerate}
+
+\item \emph{shape} - veľkosť obdĺžnika (dĺžka x šírka)
+
+\item \emph{position} - pozícia v mriežke
+
+\end{enumerate}
+
+Očividne, \emph{shape} obdĺžnika je určený jeho plochou, zatiaľ čo \emph{position} je vlastnosťou mriežky a ostatných obdĺžnikov v nej existujúcich - napr. obdĺžnik nedokážem vložiť do mriežky, pokiaľ jeden z jeho rozmerov presahuje veľkosť mriežky alebo je okolie obdĺžnika posiate inými, už zafixovanými obdĺžnikmi.
+
+Nami implementované triviálne sekvenčné riešenie potom spočíva v prehľadaní celého stavového priestoru bez orezávania neperspektívnych mriežok a výberom ideálneho riešenia z množiny riešení.
+
+Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je znázornené v tabuľke \ref{tab:sek}.
+
+	\begin{table}\centering
+		\begin{tabularx}{\textwidth}{|X|X|X|}
+			\hline                        
+			\textbf{Veľkosť mriežky} & \textbf{T(n) [s]} \\ \hline
+			\textbf{15x15} 	& 29 \\ \hline
+			\textbf{20x20} 	& 473 \\ \hline
+			\textbf{21x21} 	& 571 \\ \hline
+			\textbf{23x23} 	& 983 \\ \hline
+		\end{tabularx}
+	\caption{Trvanie sekvenčného výpočtu}
+	\label{tab:sek}
+	\end{table}
 
 \end{document}
