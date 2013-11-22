@@ -6,6 +6,8 @@
 \usepackage{pslatex}
 
 \usepackage{tabularx} % tabulky na celu sirku strany
+\usepackage{graphicx} %graphics files inclusion
+\usepackage{pdfpages}
 
 \begin{document}
 
@@ -47,7 +49,7 @@ Výstupom algoritmu je okrem celkového obvodu dielčích obdĺžnikov vyfarben�
 
 Primárny cieľ sekvenčného riešenia, na ktorom ďalej staviame v paralelnej implementácii, spočíva v nájdení a následnom prehľadaní celého stavového priestoru množiny potenciálnych riešení. 
 
-Stavový priestor v našom prípade rozumieme množinu mriežok, do ktorých postupne vkladáme obdĺžniky s dvojicou parametrov
+Stavový priestor v našom prípade rozumieme množinu mriežok, v ktorých postupne spracúvame obdĺžniky s dvojicou parametrov
 
 \begin{enumerate}
 
@@ -59,9 +61,11 @@ Stavový priestor v našom prípade rozumieme množinu mriežok, do ktorých pos
 
 Očividne, \emph{shape} obdĺžnika je určený jeho plochou, zatiaľ čo \emph{position} je vlastnosťou mriežky a ostatných obdĺžnikov v nej existujúcich - napr. obdĺžnik nedokážem vložiť do mriežky, pokiaľ jeden z jeho rozmerov presahuje veľkosť mriežky alebo je okolie obdĺžnika posiate inými, už zafixovanými obdĺžnikmi.
 
-Nami implementované triviálne sekvenčné riešenie potom spočíva v prehľadaní celého stavového priestoru bez orezávania neperspektívnych mriežok a výberom ideálneho riešenia z množiny riešení.
+Popis sekvečného riešenia v skratke: procesor zo zásobníka mriežok vezme obdĺžnik, zistí, či má \emph{shape} (v prípade negatívnej odpovede vygeneruje všetky dvojice \emph{a}, \emph{b} tak, aby ich súčin bol rovný očakávanej ploche). V ďalšom kroku procesor zistí, či daný obdĺžnik má stanovenú \emph{position} v mriežke - ak nie, na zásobník uloží všetky prípustné možnosti s ohľadom na veľkosť mriežky a susedné obdĺžniky. Procesor pokračuje do spracovania posledného obdĺžnika alebo do nájdenia prvého obdĺžnika, ktorý nemožno umiestniť do mriežky. V prípade, ak sa všetky obdĺžniky podarilo umiestniť do mriežky, procesor porovná výsledok s doterajším minimom a zo zásobníka vezme ďalšiu mriežku a opakuje takto popísanú akciu.
 
-Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je znázornené v tabuľke \ref{tab:sek}.
+V nami implementovanom triviálnom sekvenčom riešení neuplatňujeme orezávanie neperspektívnych ciest - každá mriežka dobehne do konca v prípade existencie rozdelenia obdĺžnikov a až následne sa porovná výsledný obvod s doterajším minimom.
+
+Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je znázornené v tabuľke \ref{tab:sek}. Výsledný sekvenčný čas je určený ako aritmetický priemer trojice meraní.
 
 	\begin{table}\centering
 		\begin{tabularx}{\textwidth}{|X|X|X|}
@@ -74,6 +78,34 @@ Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je zná
 		\end{tabularx}
 	\caption{Trvanie sekvenčného výpočtu}
 	\label{tab:sek}
+	\end{table}
+
+\section{Príklad zadania a výsledku}
+
+	\begin{figure}\centering
+	\includegraphics[scale=0.40,natwidth=503,natheight=648]{./sequential.pdf}
+	\caption{Príklad výstupu pre sekvenčnú úlohu}\label{fig:sek}
+	\end{figure}
+
+Program spúšťame s parametrom -f, ktorý udáva cestu k súboru obsahujúce vstupné dáta. Pre triviálny vstup o veľkosti mriežky 5x5 dostávame výstup zobrazený na obrázku \ref{fig:sek}.
+
+\section{Implementácia paralelného riešenia}
+
+	\begin{table}\centering
+		\begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|}
+			\hline                        
+			\textbf{Veľkosť mriežky} & \textbf{T(n,2)} & \textbf{T(n,4)} & \textbf{T(n,8)} & \textbf{T(n,16)} & \textbf{T(n,24)} & \textbf{T(n,32)} \\ \hline
+			\textbf{15x15} 	& & & & & &  \\ \hline
+			\textbf 	& & & & & &  \\ \hline
+			\textbf{20x20} 	& & & & & &  \\ \hline
+			\textbf 	& & & & & &  \\ \hline
+			\textbf{21x21} 	& & & & & &  \\ \hline
+			\textbf 	& & & & & &  \\ \hline
+			\textbf{23x23} 	& & & & & &  \\ \hline
+			\textbf 	& & & & & &  \\ \hline
+		\end{tabularx}
+	\caption{Trvanie paralelného výpočtu}
+	\label{tab:par}
 	\end{table}
 
 \end{document}
