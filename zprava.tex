@@ -1,1 +1,41 @@
-/home/klepo/Dropbox/FIT/7.semester/PPR/zprava.tex
+\documentclass[slovak]{article}
+\usepackage[dvips]{graphicx}        % to include images
+\usepackage{pslatex}	    % to use PostScript fonts
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pslatex}
+
+\begin{document}
+
+\begin{center}
+\bf Semestrálna práca MI-PAR 2013/2014:\\[5mm]
+    Paralelný algoritmus pre rozklad obdĺžnikov\\[5mm]
+       Jakub Melezínek\\
+       Martin Klepáč\\[2mm]
+\today
+\end{center}
+
+\section{Definícia problému}
+
+Našou úlohou bolo vytvoriť program, ktorý implementuje usporiadanie obdĺžnikov so zachovaním minimálneho celkového obvodu týchto obdĺžnikov.
+
+Obsah obdĺžnika je daný hodnotou uloženou v 2D mriežke, pričom tento element musí byť súčasťou obdĺžnika s daným obsahom.
+
+Jednotlivé obdĺžniky sú vzájomne disjunktné až na spoločné vrcholy a hrany, pričom zjednotenie všetkých obdĺžnikov pokrýva pôvodnú mriežku.
+
+Riešení, ako rozdeliť mriežku na jednotlivé obdĺžniky, môže byť viac -- v takom prípade hľadáme riešenie s minimálnym obvodom, ale zároveň riešenie nemusí existovať.
+
+
+\section{Formát vstupu, výstupu}
+
+Formálne, vstup vyjadríme pomocou \\ 
+
+\emph{a, b} = prirodzené čísla predstavujúce rozmery mriežky
+
+\emph{H[1..a][1..b]} = mriežka
+
+\emph{n} = prirodzené číslo predstavujúce počet obdĺžnikov vo vnútri mriežky \\
+
+Výstupom algoritmu je okrem celkového obvodu dielčích obdĺžnikov vyfarbená mriežka, t.j. mriežka, v ktorej každému elementu je priradené písmeno abecedy, ktoré reprezentuje číslo obdĺžnika, ktorého je bod súčasťou.
+
+\end{document}
