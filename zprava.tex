@@ -7,6 +7,7 @@
 
 \usepackage{tabularx} % tabulky na celu sirku strany
 \usepackage{graphicx} %graphics files inclusion
+\usepackage{multirow}
 \usepackage{pdfpages}
 
 \begin{document}
@@ -92,17 +93,17 @@ Program spúšťame s parametrom -f, ktorý udáva cestu k súboru obsahujúce v
 \section{Implementácia paralelného riešenia}
 
 	\begin{table}\centering
-		\begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|}
+		\begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|X|}
 			\hline                        
-			\textbf{Veľkosť mriežky} & \textbf{T(n,2)} & \textbf{T(n,4)} & \textbf{T(n,8)} & \textbf{T(n,16)} & \textbf{T(n,24)} & \textbf{T(n,32)} \\ \hline
-			\textbf{15x15} 	& & & & & &  \\ \hline
-			\textbf 	& & & & & &  \\ \hline
-			\textbf{20x20} 	& & & & & &  \\ \hline
-			\textbf 	& & & & & &  \\ \hline
-			\textbf{21x21} 	& & & & & &  \\ \hline
-			\textbf 	& & & & & &  \\ \hline
-			\textbf{23x23} 	& & & & & &  \\ \hline
-			\textbf 	& & & & & &  \\ \hline
+			\textbf{Veľkosť mriežky} & \textbf{Sieť} & \textbf{T(n,2)} & \textbf{T(n,4)} & \textbf{T(n,8)} & \textbf{T(n,16)} & \textbf{T(n,24)} & \textbf{T(n,32)} \\ \hline
+			\multirow{2}{*}{\textbf{15x15}} & E 	& 27.67 & 11.97 & 16.15 & 15.33 & 25.60 & 27.23 \\ \cline{2-8}
+			\textbf & I & 45.03 & 20.60 & 21.73 & 21.07 & 30.93 & 25.23  \\ \hline
+			\multirow{2}{*}{\textbf{20x20}} & E 	& 126.07 & 68.83 & 42.43 & 47.37 & 70.87 & 52.17 \\ \cline{2-8}
+			\textbf & I & 201.23 & 103.57 & 88.47 & 85.70 & 107.57 & 101.80  \\ \hline
+			\multirow{2}{*}{\textbf{21x21}} & E 	& 420.13 & 200.17 & 68.63 & 58.00 & 67.97 & 92.83  \\ \cline{2-8}
+			\textbf & I & 633.60 & 318.57 & 118.40 & 88.57 & 93.10 & 113.63  \\ \hline
+			\multirow{2}{*}{\textbf{23x23}} & E 	& 78.67 & 13.30 & 25.73 & 40.63 & 44.17 & 50.47  \\ \cline{2-8}
+			\textbf & I & 129.93 & 46.73 & 48.90 & 46.60 & 54.67 & 72.80  \\ \hline
 		\end{tabularx}
 	\caption{Trvanie paralelného výpočtu}
 	\label{tab:par}
