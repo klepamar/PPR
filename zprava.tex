@@ -1,14 +1,24 @@
 \documentclass[slovak]{article}
-\usepackage[dvips]{graphicx}        % to include images
-\usepackage{pslatex}	    % to use PostScript fonts
+\usepackage[dvips]{graphicx} % to include images
+\usepackage{pslatex}	     % to use PostScript fonts
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{pslatex}
 
 \usepackage{tabularx} % tabulky na celu sirku strany
-\usepackage{graphicx} %graphics files inclusion
+\usepackage{graphicx} % graphics files inclusion
 \usepackage{multirow}
 \usepackage{pdfpages}
+
+% README
+% ======
+% kompilacia: $ pdflatex zprava.tex (pre istotu dvakrat za sebou kvoli pouzitiu spatnych referencii)
+% obrazky: vo formate .pdf - napriklad konverziou z .eps (s tym dokaze pracovat gimp) prikazom 'epstopdf'; gimp zaroven dokaze priamo exportovat do pdf-ka
+
+% v pripade, ze latex defaultne spatne deli slova
+\hyphenation{Za-u-jí-ma-vej-šou}
+\hyphenation{u-miest-niť}
+\hyphenation{žia-da-li}
 
 \begin{document}
 
@@ -64,10 +74,11 @@ Očividne, \emph{shape} obdĺžnika je určený jeho plochou, zatiaľ čo \emph{
 
 Popis sekvečného riešenia v skratke: procesor zo zásobníka mriežok vezme obdĺžnik, zistí, či má \emph{shape} (v prípade negatívnej odpovede vygeneruje všetky dvojice \emph{a}, \emph{b} tak, aby ich súčin bol rovný očakávanej ploche). V ďalšom kroku procesor zistí, či daný obdĺžnik má stanovenú \emph{position} v mriežke - ak nie, na zásobník uloží všetky prípustné možnosti s ohľadom na veľkosť mriežky a susedné obdĺžniky. Procesor pokračuje do spracovania posledného obdĺžnika alebo do nájdenia prvého obdĺžnika, ktorý nemožno umiestniť do mriežky. V prípade, ak sa všetky obdĺžniky podarilo umiestniť do mriežky, procesor porovná výsledok s doterajším minimom a zo zásobníka vezme ďalšiu mriežku a opakuje takto popísanú akciu.
 
-V nami implementovanom triviálnom sekvenčom riešení neuplatňujeme orezávanie neperspektívnych ciest - každá mriežka dobehne do konca v prípade existencie rozdelenia obdĺžnikov a až následne sa porovná výsledný obvod s doterajším minimom.
+V nami implementovanom triviálnom sekvenčnom riešení neuplatňujeme orezávanie neperspektívnych ciest - každá mriežka dobehne do konca v prípade existencie rozdelenia obdĺžnikov a až následne sa porovná výsledný obvod s doterajším minimom.
 
-Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je znázornené v tabuľke \ref{tab:sek}. Výsledný sekvenčný čas je určený ako aritmetický priemer trojice meraní.
+Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je znázornené v tabuľke \ref{tab:sek}. Výsledný sekvenčný čas je určený ako aritmetický priemer trojice meraní. Rovnakú metodiku sme použili aj pri popisovaní výsledkov paralelného behu.
 
+% tabulka na celu sirku strany
 	\begin{table}\centering
 		\begin{tabularx}{\textwidth}{|X|X|X|}
 			\hline                        
@@ -83,15 +94,56 @@ Trvanie sekvenčného výpočtu na výpočtovom klastri star.fit.cvut.cz je zná
 
 \section{Príklad zadania a výsledku}
 
-	\begin{figure}\centering
+Program spúšťame s parametrom -f, ktorý udáva cestu k súboru obsahujúce vstupné dáta. Pre triviálny vstup o veľkosti mriežky 5x5 dostávame výstup zobrazený na obrázku \ref{fig:sek}.
+
+% !h = here, nepouzi floating prostredie, ktore latex defaultne vyuziva
+% latex nedokazal spravne urcit velkost vstupneho obrazku, preto som rozmery musel dodat a nasledne zmensit obrazok na 40% povodneho
+	\begin{figure}[!h]\centering
 	\includegraphics[scale=0.40,natwidth=503,natheight=648]{./sequential.pdf}
 	\caption{Príklad výstupu pre sekvenčnú úlohu}\label{fig:sek}
 	\end{figure}
 
-Program spúšťame s parametrom -f, ktorý udáva cestu k súboru obsahujúce vstupné dáta. Pre triviálny vstup o veľkosti mriežky 5x5 dostávame výstup zobrazený na obrázku \ref{fig:sek}.
-
 \section{Implementácia paralelného riešenia}
 
+Paralelní algoritmus začíná tím, že Master načte vstupní data a začne
+řešit úlohu. Ve chvíli, kdy má dostatek práce na odeslání práce alespoň
+jednomu procesoru, rozdělí zásobník podélně, přičemž se z každé úrovně
+stromu vezme jen jeden prvek. Oddělenou část zásobníku Master neblokujícím
+způsobem odesílá nenastartovanému procesoru. Jednotlivé procesory jsou
+tedy startovány postupně a obdrží dostatek práce. Procesory bez prvotní
+práce (neaktivní/čekající) čekají na zprávu s prací od Mastera a mezitím
+obsluhují i ostatní zprávy.
+
+Nastartovaný procesor řeší úloho pomocí algoritmu ze sekvenčního řešení.
+Navíc je implementováno ořezávání stavového prostoru podle nejlepšího
+známého lokálního řešení. Procesy toto lokální nejlepší řešení posílají
+zároveň s odesílanou prací a je tedy zajištěna určitá propagace globálního
+nejlepšího řešení.
+
+Pokud procesoru dojde práce, odešle token pokud ho drží (procesor si
+přijatý token drží do chvíle než má prázdný zásobník, aby nedocházelo ke
+zbytečnému posílání zpráv). Poté zažádá náhodného dárce o práci a dokud
+neobdrží zprávu s prací, obsluhuje přijaté zprávy a případně žádá nového
+dárce. Dárce se pokusí rozdělit zásobník u dna. Pokud se mu to povede,
+odesílá práci (a své lokální nejlepší řešení). Pokud nemá dostatek práce,
+aby mohl být zásobník rozdělen, odesílá zprávu bez práce a žádající hledá
+nového dárce.
+
+Aktivní procesor každých 50 vyřešených DFS (vnější cyklus algoritmu -
+umístění jednoho obdélníku) obsluhuje přijaté žádosti o práci. Ostatní
+zprávy obsluhuje jen v případě prázdného zásobníku (ve volné chvíli kdy
+čeká na zprávu od dárce). Neaktivní/čekající procesor obsluhuje zprávy ve
+smyčce tak, že jsou obslouženy všechny zprávy ve frontě a poté je procesor
+uspán na 50ms a to opakuje do chvíle než přijme nějakou práci. Tím se
+přepne se do stavu aktivní a počítá řešení.
+
+Tento cyklus přijímání zpráv může být také ukončen přijmutím zprávy o
+ukončení výpočtu. V takovém případě procesor ihned ukončí obsluhou zpráv,
+ukončí algoritmus řešící úlohu a odesílá své nejlepší řešení Masterovi.
+Master tyto řešení sekvenčně přijme od každého procesoru a porovnáním
+zjistí konečné řešení.
+
+% tabulka tak, ze velkost mriezky sa zobrazi cez dva spolocne riadky
 	\begin{table}\centering
 		\begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|X|}
 			\hline                        
@@ -108,5 +160,49 @@ Program spúšťame s parametrom -f, ktorý udáva cestu k súboru obsahujúce v
 	\caption{Trvanie paralelného výpočtu}
 	\label{tab:par}
 	\end{table}
+	
+	\begin{figure}[!h]\centering
+	\includegraphics[scale=0.31,natwidth=578,natheight=343]{./vstup15x15.pdf}
+	\caption{Paralelné zrýchlenie pre inštanciu problému 15x15}\label{fig:vstup15}
+	\end{figure}
+
+	\begin{figure}[!h]\centering
+	\includegraphics[scale=0.31,natwidth=578,natheight=343]{./vstup20x20.pdf}
+	\caption{Paralelné zrýchlenie pre inštanciu problému 20x20}\label{fig:vstup20}
+	\end{figure}
+	
+	\begin{figure}[!h]\centering
+	\includegraphics[scale=0.31,natwidth=578,natheight=343]{./vstup21x21.pdf}
+	\caption{Paralelné zrýchlenie pre inštanciu problému 21x21}\label{fig:vstup21}
+	\end{figure}	
+
+	\begin{figure}[!h]\centering
+	\includegraphics[scale=0.31,natwidth=578,natheight=343]{./vstup23x23.pdf}
+	\caption{Paralelné zrýchlenie pre inštanciu problému 23x23}\label{fig:vstup23}
+	\end{figure}
+
+\section{Vyhodnotenie}
+
+	Záver tejto správy by sme vyhradili analýze dosiahnutých výsledkov. Už letmým porovnaním tabuľiek \ref{tab:sek} a \ref{tab:par} je jasné, že v drvivej väčšine prípadov sme dosiahli stav, v ktorom paralelné spracovanie prebieha rýchlejšie ako sekvenčné riešenie. Zaujímavejšou otázkou preto zostáva hodnota zrýchlenia pre narastajúci počet procesorov pre všetky 4 analyzované riešenia.
+
+	Prvý vstup o veľkosti mriežky 15x15, ktorého dĺžka sekvenčného spracovania nepresiahla 0.5 minúty, dosiahla najvyššiu hodnotu zrýchlenia už pre malý počet procesorov, konkrétne 4 pre siete Ethernet a InifiniBand súčasne - viz obrázok \ref{fig:vstup15}.
+	
+	Ďalšie vstupy o veľkosti mriežky 20x20 resp. 21x21, ktoré bežali na jednom procesore takmer 10 minút, dosiahli strop efektívnosti pri počte 8 resp. 16 procesorov. V porovnaní s menším vstupom 15x15 je tak zrejmé, že došlo k efektívnejšiemu využívaniu prostriedkov z dôvodu, že procesory pracovali nad dostatočne veľkým zásobníkom mriežok, vďaka čomu svoju prácu neukončili okamžite.
+	
+	Z hľadiska efektívnosti je nemenej zaujímavý prípad vstupu 23x23, ktorý na rozdiel od predchádzajúcich vstupov nebol vybraný náhodne. Naopak, pri jeho výbere sme hľadali mriežku s 1 veľkou hodnotou plochy dielčieho obdĺžnika. Naviac sme žiadali, aby hodnota plochy bola deliteľná minimálným počtom čísel, a teda \emph{shape} bol určený jednoznačne. Tieto predpoklady splnila mriežka obsahujúca hodnotu 121, ktorá sama zaberá približne 1/4 celkovej plochy. Vďaka nájdeniu takejto mriežky výsledný čas sekvenčného riešenia spĺňal hornú hranicu behu - 15 minút.
+	
+	Takto zvolený vstup 23x23 potom dosiahol pozoruhodné superlineárne zrýchlenie, napr. s použitím 2 procesorov došlo k zrýchleniu paralelného behu vyše 70-krát. Predpokladáme, že veľkú zásluhu na tejto hodnote má orezávanie neperspektívnych ciest na základe lokálne najlepšieho riešenia a posielanie najlepšieho známeho riešenia pri delení práce.
+	
+	Zaujímavosťou nášho riešenia je fakt, že s výnimkou jedného prípadu - veľkosť mriežky 15x15, beh na 32 procesoroch - sa ako rýchlejší ukázal štandard Ethernet. Vzhľadom na to, že nemáme dostatok informácií o konkrétnej implementácii siete InfiniBand, by sme z tohto výsledku nedokázali vyvodiť žiadne závery.
+	
+\section{Zdroje}
+
+\begin{enumerate}
+
+\item prednášky na eduxe k predmetu MI-PAR \begin{verbatim}https://edux.fit.cvut.cz/courses/MI-PAR.2 \end{verbatim}
+
+\item správa k zadaniu Othello \begin{verbatim}http://www.michaltrs.net/cvut_fel/36par/36PAR-othello-zprava.pdf \end{verbatim}
+
+\end{enumerate}
 
 \end{document}
